@@ -4,3 +4,6 @@
 [submodule "prevwork/Lasagne"]
 	path = prevwork/Lasagne
 	url = git@github.com:Lasagne/Lasagne.git
+[submodule "prevwork/theano"]
+	path = prevwork/theano
+	url = git@github.com:Theano/Theano.git

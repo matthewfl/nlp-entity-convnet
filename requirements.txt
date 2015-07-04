@@ -1,3 +1,4 @@
 Theano
 git+https://github.com/Lasagne/Lasagne.git
 pandas
+#git+https://github.com/Theano/libgpuarray.git

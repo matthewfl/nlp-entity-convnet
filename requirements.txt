@@ -1,0 +1,3 @@
+Theano
+git+https://github.com/Lasagne/Lasagne.git
+pandas

@@ -1,0 +1,6 @@
+[submodule "prevwork/CNN_sentence"]
+	path = prevwork/CNN_sentence
+	url = git@github.com:yoonkim/CNN_sentence.git
+[submodule "prevwork/Lasagne"]
+	path = prevwork/Lasagne
+	url = git@github.com:Lasagne/Lasagne.git

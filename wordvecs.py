@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class wordVectors(object):
+class WordVectors(object):
 
     def __init__(
             self,

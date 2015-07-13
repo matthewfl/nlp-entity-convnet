@@ -3,3 +3,5 @@ git+https://github.com/Lasagne/Lasagne.git
 pandas
 pylab
 #git+https://github.com/Theano/libgpuarray.git
+git+https://github.com/fchollet/keras.git
+#git+https://github.com/lisa-lab/pylearn2.git

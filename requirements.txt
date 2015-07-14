@@ -1,7 +1,10 @@
-Theano
+#Theano
+git+https://github.com/Theano/Theano.git
 git+https://github.com/Lasagne/Lasagne.git
 pandas
 pylab
 #git+https://github.com/Theano/libgpuarray.git
 git+https://github.com/fchollet/keras.git
 #git+https://github.com/lisa-lab/pylearn2.git
+git+https://github.com/lmjohns3/theanets.git
+pydot

@@ -1,0 +1,4 @@
+to get working:
+
+	pip install -r requirements.txt
+	ipython notebook

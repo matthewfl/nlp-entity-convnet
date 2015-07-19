@@ -13,7 +13,13 @@ class WordVectors(object):
         self.negvectors = {}
         self.vectors = {}
         self.vector_size = 0
+
+        self.word_location = {}
+        self.word_count = 0
+        self.word_matrix = []
+
         self._load()
+
 
     def _load(self):
         # based off the loader from CNN_sentence
@@ -46,3 +52,23 @@ class WordVectors(object):
             return r
         self._add_unknown_word(word)
         return self.vectors[word]
+
+    def get_location(self, word):
+        r = self.word_location.get(word)
+        if r is not None:
+            return r
+        itm = self[word]
+        place = self.word_count
+        self.word_count += 1
+        self.word_matrix.append(itm)
+        self.word_location[word] = place
+
+    def get_numpy_matrix(self):
+        "return a matrix that contains all the words vectors, then can use the tokenized location to lookup a given word"
+        return np.array(self.word_matrix)
+
+    def tokenize(self, sentence):
+        ret = []
+        for word in sentence.lower().split():
+            ret.append(self.get_location(word))
+        return ret

@@ -140,8 +140,11 @@ class EmbeddingLayer(Layer):
             self.output_size = W.shape[1]
             s = W.shape
 
-        self.W = self.add_param(W, s, name="Embeddings",
-                                trainable=add_word_params)
+        if add_word_params:
+            self.W = self.add_param(W, s, name="Embeddings",
+                                    trainable=add_word_params)
+        else:
+            self.W = theano.shared(name='Embeddings', value=W)
 
     def get_output_shape_for(self, input_shape):
         r = (input_shape[0], 1, input_shape[1], self.output_size)

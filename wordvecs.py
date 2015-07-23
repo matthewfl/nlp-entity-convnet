@@ -15,10 +15,12 @@ class WordVectors(object):
         self.vector_size = 0
 
         self.word_location = {}
-        self.word_count = 0
+        self.word_count = 1
         self.word_matrix = []
 
         self._load()
+
+        self.word_matrix.append(np.zeros(self.vector_size))
 
 
     def _load(self):
@@ -62,6 +64,7 @@ class WordVectors(object):
         self.word_count += 1
         self.word_matrix.append(itm)
         self.word_location[word] = place
+        return place
 
     def get_numpy_matrix(self):
         "return a matrix that contains all the words vectors, then can use the tokenized location to lookup a given word"
@@ -69,6 +72,81 @@ class WordVectors(object):
 
     def tokenize(self, sentence):
         ret = []
-        for word in sentence.lower().split():
-            ret.append(self.get_location(word))
+        wrds = sentence.lower().split()
+        for i in xrange(50):
+            if i < len(wrds):
+                ret.append(self.get_location(wrds[i]))
+            else:
+                ret.append(0)
         return ret
+
+
+
+from lasagne.layers.base import Layer
+from lasagne import init
+
+class EmbeddingLayer(Layer):
+    """
+    lasagne.layers.EmbeddingLayer(incoming, input_size, output_size,
+    W=lasagne.init.Normal(), **kwargs)
+
+    A layer for word embeddings. The input should be an integer type
+    Tensor variable.
+
+    Parameters
+    ----------
+    incoming : a :class:`Layer` instance or a tuple
+        The layer feeding into this layer, or the expected input shape.
+
+    input_size: int
+        The Number of different embeddings. The last embedding will have index
+        input_size - 1.
+
+    output_size : int
+        The size of each embedding.
+
+    W : Theano shared variable, numpy array or callable
+        The embedding matrix.
+
+    Examples
+    --------
+    >>> from lasagne.layers import EmbeddingLayer, InputLayer, get_output
+    >>> import theano
+    >>> x = T.imatrix()
+    >>> l_in = InputLayer((3, ))
+    >>> W = np.arange(3*5).reshape((3, 5)).astype('float32')
+    >>> l1 = EmbeddingLayer(l_in, input_size=3, output_size=5, W=W)
+    >>> output = get_output(l1, x)
+    >>> f = theano.function([x], output)
+    >>> x_test = np.array([[0, 2], [1, 2]]).astype('int32')
+    >>> f(x_test)
+    array([[[  0.,   1.,   2.,   3.,   4.],
+            [ 10.,  11.,  12.,  13.,  14.]],
+    <BLANKLINE>
+           [[  5.,   6.,   7.,   8.,   9.],
+            [ 10.,  11.,  12.,  13.,  14.]]], dtype=float32)
+    """
+    def __init__(self, incoming, output_size=None, num_words=None,
+                 W=None, add_word_params=False, **kwargs):
+        super(EmbeddingLayer, self).__init__(incoming, **kwargs)
+
+        assert (num_words is not None and output_size is not None) or W is not None, 'need the output_shape or W'
+
+        if W is None:
+            W = init.Normal()
+            self.output_size = output_size
+            s = (num_words, output_size)
+        else:
+            self.output_size = W.shape[1]
+            s = W.shape
+
+        self.W = self.add_param(W, s, name="Embeddings",
+                                trainable=add_word_params)
+
+    def get_output_shape_for(self, input_shape):
+        r = (input_shape[0], 1, input_shape[1], self.output_size)
+        return r
+
+    def get_output_for(self, input, **kwargs):
+        # if the value at some position is -1, then need to
+        return self.W[input].reshape(self.get_output_shape_for(input.shape))

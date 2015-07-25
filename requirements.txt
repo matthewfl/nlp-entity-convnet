@@ -8,3 +8,4 @@ git+https://github.com/fchollet/keras.git
 #git+https://github.com/lisa-lab/pylearn2.git
 git+https://github.com/lmjohns3/theanets.git
 pydot
+#terminado

@@ -7,13 +7,15 @@ class WordVectors(object):
     def __init__(
             self,
             fname,
-            negvectors=False
+            negvectors=False,
+            sentenceLength=50,
     ):
         self.fname = fname
         self.have_negvectors = negvectors
         self.negvectors = {}
         self.vectors = {}
         self.vector_size = 0
+        self.sentenceLength = sentenceLength
 
         self.word_location = {}
         self.word_count = 1
@@ -71,10 +73,11 @@ class WordVectors(object):
         "return a matrix that contains all the words vectors, then can use the tokenized location to lookup a given word"
         return np.array(self.word_matrix)
 
-    def tokenize(self, sentence):
+    def tokenize(self, wrds):
         ret = []
-        wrds = sentence.lower().split()
-        for i in xrange(50):
+        if isinstance(wrds, basestring):
+            wrds = wrds.lower().split()
+        for i in xrange(self.sentenceLength):
             if i < len(wrds):
                 ret.append(self.get_location(wrds[i]))
             else:

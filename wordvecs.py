@@ -1,6 +1,4 @@
 import numpy as np
-import theano
-
 
 class WordVectors(object):
 
@@ -8,18 +6,19 @@ class WordVectors(object):
             self,
             fname,
             negvectors=False,
-            sentenceLength=50,
+            sentence_length=50,
     ):
         self.fname = fname
         self.have_negvectors = negvectors
         self.negvectors = {}
         self.vectors = {}
         self.vector_size = 0
-        self.sentenceLength = sentenceLength
+        self.sentence_length = sentence_length
 
         self.word_location = {}
         self.word_count = 1
         self.word_matrix = []
+        self.reverse_word_location = [None]
 
         self._load()
 
@@ -67,7 +66,12 @@ class WordVectors(object):
         self.word_count += 1
         self.word_matrix.append(itm)
         self.word_location[word] = place
+        self.reverse_word_location.append(word)
         return place
+
+    def get_word(self, location):
+        assert location < len(self.reverse_word_location)
+        return self.reverse_word_location[location]
 
     def get_numpy_matrix(self):
         "return a matrix that contains all the words vectors, then can use the tokenized location to lookup a given word"
@@ -77,7 +81,7 @@ class WordVectors(object):
         ret = []
         if isinstance(wrds, basestring):
             wrds = wrds.lower().split()
-        for i in xrange(self.sentenceLength):
+        for i in xrange(self.sentence_length):
             if i < len(wrds):
                 ret.append(self.get_location(wrds[i]))
             else:
@@ -85,7 +89,7 @@ class WordVectors(object):
         return ret
 
 
-
+import theano
 from lasagne.layers.base import Layer
 from lasagne import init
 
@@ -141,14 +145,20 @@ class EmbeddingLayer(Layer):
             self.output_size = output_size
             s = (num_words, output_size)
         else:
-            self.output_size = W.shape[1]
-            s = W.shape
+            if isinstance(W, theano.compile.SharedVariable):
+                s = W.get_value(borrow=True).shape
+            else:
+                s = W.shape
+            self.output_size = s[1]
 
         if add_word_params:
             self.W = self.add_param(W, s, name="Embeddings",
                                     trainable=add_word_params)
         else:
-            self.W = theano.shared(name='Embeddings', value=W)
+            if isinstance(W, theano.compile.SharedVariable):
+                self.W = W
+            else:
+                self.W = theano.shared(name='Embeddings', value=W)
 
     def get_output_shape_for(self, input_shape):
         r = (input_shape[0], 1, input_shape[1], self.output_size)

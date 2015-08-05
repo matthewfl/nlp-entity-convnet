@@ -1,10 +1,12 @@
 import numpy as np
+import json
 
 class WordVectors(object):
 
     def __init__(
             self,
             fname,
+            redir_fname=None,
             negvectors=False,
             sentence_length=50,
     ):
@@ -23,7 +25,10 @@ class WordVectors(object):
         self._load()
 
         self.word_matrix.append(np.zeros(self.vector_size))
-
+        if redir_fname:
+            self.redirects = json.load(open(redir_fname))
+        else:
+            self.redirects = {}
 
     def _load(self):
         # based off the loader from CNN_sentence
@@ -51,6 +56,7 @@ class WordVectors(object):
             self.negvectors[word] = np.random.uniform(-0.25, 0.25, self.vector_size)
 
     def __getitem__(self, word):
+        word = self.redirects.get(word, word)
         r = self.vectors.get(word)
         if r is not None:
             return r

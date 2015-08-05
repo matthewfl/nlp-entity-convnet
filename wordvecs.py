@@ -50,10 +50,17 @@ class WordVectors(object):
                 if self.have_negvectors:
                     self.negvectors[word] = np.fromstring(f.read(binary_len), dtype='float32')
 
-    def _add_unknown_word(self, word):
+    def _add_unknown_word_rand(self, word):
+        "add an unknown word useing a new random vector, good for when training the vectors"
         self.vectors[word] = np.random.uniform(-0.25, 0.25, self.vector_size)
         if self.have_negvectors:
             self.negvectors[word] = np.random.uniform(-0.25, 0.25, self.vector_size)
+
+    def _add_unknown_word(self, word):
+        "add a zero vector, good for when there are a lot of these vectors and we want to ignore them"
+        self.vectors[word] = np.zeros(self.vector_size)
+        if self.have_negvectors:
+            self.negvectors[word] = np.zeros(self.vector_size)
 
     def __getitem__(self, word):
         word = self.redirects.get(word, word)

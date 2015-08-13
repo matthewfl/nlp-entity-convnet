@@ -77,6 +77,8 @@ class WikiRegexes(object):
 
     redirects = {}
 
+    page_titles = set()
+
     _wiki_re_pre = [
         (re.compile('&amp;'), '&'),
         (re.compile('&lt;'), '<'),
@@ -96,23 +98,39 @@ class WikiRegexes(object):
     _wiki_re_post = [
         (re.compile('[\[|\]]'), ''),
         (re.compile('&[^;]*;'), ' '),
-        (re.compile('\('), '_lrb_'),
-        (re.compile('\)'), '_rrb_'),
-        (re.compile('[^a-zA-Z0-9_ ]'), ''),
+        (re.compile('\(|\)'), ''),
+        #(re.compile('\)'), '_rrb_'),
         (re.compile('\n+'), ' '),
+        (re.compile('[^a-zA-Z0-9_ ]'), ''),
+        (re.compile('\s+'), ' ')
     ]
 
     _wiki_re_all = _wiki_re_pre + _wiki_re_post
 
-    _wiki_link_re = re.compile('\[\[([^\|\]\[\{\}]+?)(\|[^\]\[\{\}]*)\]\]')
+    _wiki_link_re = [
+        re.compile('\[\[([^\|\n\]]*)\]\]'),
+        re.compile('\[\[([^\|\]\[\{\}]+?)\|([^\]\[\{\}]*)\]\]'),
+    ]
+
+    _wiki_non_title = re.compile('[^a-z0-9_]')
 
     def _wikiResolveLink(self, match):
-        print match.groups()
+        #print match.groups()
+        #import ipdb; ipdb.set_trace()
         m = match.group(1)
         if m:
-            return self.redirects.get(m, m).replace(' ', '_').lower()
+            mg = self.convertToTitle(m)
+            tit = self.redirects.get(mg, mg)
+            if tit in self.page_titles:
+                return tit
+            else:
+                return match.group(0)
         else:
-            return ''
+            return match.group(0)
+
+    @classmethod
+    def convertToTitle(cls, tit):
+        return cls._wiki_non_title.sub('', tit.replace(' ', '_').replace('(', '_lrb_').replace(')', '_rrb_').lower())
 
     @classmethod
     def _wikiToText(cls, txt):
@@ -125,7 +143,8 @@ class WikiRegexes(object):
         txt = txt.lower()
         for r in self._wiki_re_pre:
             txt = r[0].sub(r[1], txt)
-        txt = self._wiki_link_re.sub(self._wikiResolveLink, txt)
+        for r in self._wiki_link_re:
+            txt = r.sub(self._wikiResolveLink, txt)
         for r in self._wiki_re_post:
             txt = r[0].sub(r[1], txt)
         return txt
@@ -139,6 +158,7 @@ class WikipediaW2VParser(WikipediaReader, WikiRegexes):
         self.output_fname = output_fname
         self.read_pages = False
         self.redirects = {}
+        self.page_titles = set()
 
     def save_redirects(self):
         cnt = 0
@@ -146,6 +166,7 @@ class WikipediaW2VParser(WikipediaReader, WikiRegexes):
         # resolve double or more redirects
         while cnt < 10 and cont_iters:
             cont_iters = False
+            cnt += 1
             for k, v in self.redirects.iteritems():
                 v2 = self.redirects.get(v)
                 if v2:
@@ -157,13 +178,14 @@ class WikipediaW2VParser(WikipediaReader, WikiRegexes):
 
     def readRedirect(self, title, target):
         if not self.read_pages:
-            self.redirects[title] = target
+            self.redirects[self.convertToTitle(title)] = self.convertToTitle(target)
 
     def readPage(self, title, content):
         if self.read_pages:
             self.save_f.write(self._wikiToLinks(content))
             self.save_f.write('\n')
-
+        else:
+            self.page_titles.add(self.convertToTitle(title))
 
     def run(self):
         # read the reidrects first
@@ -178,6 +200,7 @@ class WikipediaW2VParser(WikipediaReader, WikiRegexes):
 
 
 def main():
+    # wikipedia_raw_dump output_redirects output_text
     import sys
     parser = WikipediaW2VParser(sys.argv[-3], sys.argv[-2], sys.argv[-1])
     parser.run()

@@ -94,9 +94,13 @@ class WikiRegexes(object):
         (re.compile('\[\[category:([^\|\]\[]*)[^\]\[]*\]\]', re.IGNORECASE), '[[\\1]]'),  # make category into links
         (re.compile('\[\[[a-z\-]*:[^\]]\]\]'), ''),
         (re.compile('\[\[[^\|\]]*\|'), '[['),
-        (regex.compile('\{((?R)|[^\{\}]*)*\}'), ''),  # this is a recursive regex
-        #(re.compile('{{[^}]*}}'), ''),
-        #(re.compile('{[^}]*}'), ''),
+        #(regex.compile('\{((?R)|[^\{\}]*)*\}'), ''),  # this is a recursive regex
+        (re.compile('{{[^\{\}]*}}'), ''),
+        (re.compile('{{[^\{\}]*}}'), ''),
+        (re.compile('{{[^\{\}]*}}'), ''),
+        (re.compile('{[^\{\}]*}'), ''),
+        (re.compile('{[^\{\}]*}'), ''),
+        (re.compile('{[^\{\}]*}'), ''),
     ]
 
     _wiki_re_post = [

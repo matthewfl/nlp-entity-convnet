@@ -10,6 +10,7 @@ git+https://github.com/lmjohns3/theanets.git
 pydot
 #terminado
 nltk
+regex
 
 # other junk to prevent these from updating
 scipy==0.15.1

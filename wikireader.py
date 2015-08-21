@@ -1,6 +1,8 @@
 import re
 import json
 
+import regex
+
 
 class WikipediaReader(object):
 
@@ -83,16 +85,18 @@ class WikiRegexes(object):
         (re.compile('&amp;'), '&'),
         (re.compile('&lt;'), '<'),
         (re.compile('&gt;'), '>'),
-        (re.compile('<ref[^<]*<\/ref>'), ''),
+        (re.compile('<ref.+?<\/ref>'), ''),
         (re.compile('<.*?>'), ''),
         (re.compile('\[http[^\] ]*', re.IGNORECASE), ''),
+        (re.compile('[a-zA-Z]+:\/\/[^\] ]+', re.IGNORECASE), ''),
         (re.compile('\|(thumb|left|right|\d+px)', re.IGNORECASE), ''),
-        (re.compile('\[\[image:[^\[\]]*\|', re.IGNORECASE), ''),
-        (re.compile('\[\[category:([^|\]]*)[^]]*\]\]', re.IGNORECASE), '\\1'),
+        (re.compile('\[\[image:[^\[\]]*\|([^\[\]]*)\]\]', re.IGNORECASE), '\\1'),
+        (re.compile('\[\[category:([^\|\]\[]*)[^\]\[]*\]\]', re.IGNORECASE), '[[\\1]]'),  # make category into links
         (re.compile('\[\[[a-z\-]*:[^\]]\]\]'), ''),
         (re.compile('\[\[[^\|\]]*\|'), '[['),
-        (re.compile('{{[^}]*}}'), ''),
-        (re.compile('{[^}]*}'), ''),
+        (regex.compile('\{((?R)|[^\{\}]*)*\}'), ''),  # this is a recursive regex
+        #(re.compile('{{[^}]*}}'), ''),
+        #(re.compile('{[^}]*}'), ''),
     ]
 
     _wiki_re_post = [
@@ -102,10 +106,16 @@ class WikiRegexes(object):
         #(re.compile('\)'), '_rrb_'),
         (re.compile('\n+'), ' '),
         (re.compile('[^a-zA-Z0-9_ ]'), ''),
-        (re.compile('\s+'), ' ')
+        (re.compile(' \d+ '), ' ### '),  # numbers on their own in text are replaces with ###, maintain numbers in page titles
+        (re.compile('\s+'), ' '),
     ]
 
-    _wiki_re_all = _wiki_re_pre + _wiki_re_post
+    _wiki_links_to_text = [
+        (re.compile('\[\[(^\|\n\])*\]\]'), '\\1'),
+        (re.compile('\[\[([^\|\]\[\{\}]+?)\|([^\]\[\{\}]*)\]\]'), '\\2'),
+    ]
+
+    _wiki_re_all = _wiki_re_pre + _wiki_links_to_text + _wiki_re_post
 
     _wiki_link_re = [
         re.compile('\[\[([^\|\n\]]*)\]\]'),

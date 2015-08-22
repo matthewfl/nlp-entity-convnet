@@ -115,7 +115,7 @@ class WikiRegexes(object):
     ]
 
     _wiki_links_to_text = [
-        (re.compile('\[\[(^\|\n\])*\]\]'), '\\1'),
+        (re.compile('\[\[([^\[\|\n\]]*)\]\]'), '\\1'),
         (re.compile('\[\[([^\|\]\[\{\}]+?)\|([^\]\[\{\}]*)\]\]'), '\\2'),
     ]
 

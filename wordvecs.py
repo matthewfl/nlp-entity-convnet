@@ -16,6 +16,7 @@ class WordVectors(object):
         self.vectors = {}
         self.vector_size = 0
         self.sentence_length = sentence_length
+        self.add_unknown_words = True
 
         self.word_location = {}
         self.word_count = 1
@@ -67,14 +68,17 @@ class WordVectors(object):
         r = self.vectors.get(word)
         if r is not None:
             return r
-        self._add_unknown_word(word)
-        return self.vectors[word]
+        if self.add_unknown_words:
+            self._add_unknown_word(word)
+            return self.vectors[word]
 
     def get_location(self, word):
         r = self.word_location.get(word)
         if r is not None:
             return r
         itm = self[word]
+        if itm is None:
+            return None
         place = self.word_count
         self.word_count += 1
         self.word_matrix.append(itm)
@@ -90,13 +94,16 @@ class WordVectors(object):
         "return a matrix that contains all the words vectors, then can use the tokenized location to lookup a given word"
         return np.array(self.word_matrix)
 
-    def tokenize(self, wrds):
+    def tokenize(self, wrds, length=None):
         ret = []
         if isinstance(wrds, basestring):
             wrds = wrds.lower().split()
-        for i in xrange(self.sentence_length):
+        for i in xrange(length or self.sentence_length):
             if i < len(wrds):
-                ret.append(self.get_location(wrds[i]))
+                w = self.get_location(wrds[i])
+                if w is None:
+                    w = 0
+                ret.append(w)
             else:
                 ret.append(0)
         return ret

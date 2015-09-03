@@ -19,15 +19,15 @@ class SimpleMaxingLayer(Layer):
         return T.max(input, axis=self.axis)
 
 
-def SimpleAverageLayer(MergeLayer):
+class SimpleAverageLayer(MergeLayer):
     "compute the length of sentence and use that for the average instead of the vector length"
 
     def __init__(self, incomings, axis=2, **kwargs):
-        super(SimpleMaxingLayer, self).__init__(incomings, **kwargs)
+        super(SimpleAverageLayer, self).__init__(incomings, **kwargs)
         self.axis = axis
 
     def get_output_shape_for(self, input_shapes):
-        r = list(input_shape[0])
+        r = list(input_shapes[0])
         del r[self.axis]
         return tuple(r)
 

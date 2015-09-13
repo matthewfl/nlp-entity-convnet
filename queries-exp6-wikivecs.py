@@ -680,11 +680,6 @@ def evalCurrentState(trainingData=True, numSamples=50000):
     return r
 
 
-# In[63]:
-
-evalCurrentState(False, 10000000)
-
-
 # In[17]:
 
 import random
@@ -721,12 +716,12 @@ get_ipython().magic(u'time print queries_exp.compute_batch()')
 
 # In[25]:
 
-print evalCurrentState(False, 500000)
+#print evalCurrentState(False, 500000)
 
 
 # In[26]:
 
-print evalCurrentState(True, 500000)
+#print evalCurrentState(True, 500000)
 
 
 # In[22]:

@@ -1,7 +1,8 @@
 import re
 import json
+from collections import defaultdict
 
-import regex
+#import regex
 
 
 class WikipediaReader(object):
@@ -93,7 +94,7 @@ class WikiRegexes(object):
         (re.compile('\[\[image:[^\[\]]*\|([^\[\]]*)\]\]', re.IGNORECASE), '\\1'),
         (re.compile('\[\[category:([^\|\]\[]*)[^\]\[]*\]\]', re.IGNORECASE), '[[\\1]]'),  # make category into links
         (re.compile('\[\[[a-z\-]*:[^\]]\]\]'), ''),
-        (re.compile('\[\[[^\|\]]*\|'), '[['),
+        #(re.compile('\[\[[^\|\]]*\|'), '[['),
         #(regex.compile('\{((?R)|[^\{\}]*)*\}'), ''),  # this is a recursive regex
         (re.compile('{{[^\{\}]*}}'), ''),
         (re.compile('{{[^\{\}]*}}'), ''),
@@ -166,13 +167,21 @@ class WikiRegexes(object):
 
 class WikipediaW2VParser(WikipediaReader, WikiRegexes):
 
-    def __init__(self, wiki_fname, redirect_fname, output_fname):
+    def __init__(self, wiki_fname, redirect_fname, surface_count_fname, output_fname):
         super(WikipediaW2VParser, self).__init__(wiki_fname)
         self.redirect_fname = redirect_fname
         self.output_fname = output_fname
+        self.surface_count_fname = surface_count_fname
         self.read_pages = False
         self.redirects = {}
         self.page_titles = set()
+        self.surface_to_title = defaultdict(lambda: defaultdict(lambda: 0))
+
+    def _wikiResolveLink(self, match):
+        page = super(WikipediaReader, self)._wikiResolveLink(match)
+        surface = match.groups()[-1]
+        self.surface_to_title[surface][page] += 1
+        return page
 
     def save_redirects(self):
         cnt = 0
@@ -189,6 +198,10 @@ class WikipediaW2VParser(WikipediaReader, WikiRegexes):
 
         with open(self.redirect_fname, 'w+') as f:
             json.dump(self.redirects, f)
+
+    def save_surface_counts(self):
+        with open(self.surface_count_fname, 'w+') as f:
+            json.dump(self.surface_to_title, f)
 
     def readRedirect(self, title, target):
         if not self.read_pages:
@@ -210,13 +223,14 @@ class WikipediaW2VParser(WikipediaReader, WikiRegexes):
         self.save_f = open(self.output_fname, 'w+')
         self.read()
         self.save_f.close()
+        self.save_surface_counts()
 
 
 
 def main():
-    # wikipedia_raw_dump output_redirects output_text
+    # wikipedia_raw_dump output_redirects output_surface_counts output_text
     import sys
-    parser = WikipediaW2VParser(sys.argv[-3], sys.argv[-2], sys.argv[-1])
+    parser = WikipediaW2VParser(sys.argv[-4], sys.argv[-3], sys.argv[-2], sys.argv[-1])
     parser.run()
 
 

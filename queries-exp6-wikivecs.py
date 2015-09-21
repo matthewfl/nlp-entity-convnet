@@ -555,8 +555,8 @@ class EntityVectorLinkExp(basePreProcessedQueries):
         self.current_learning_groups = []
         self.learning_targets = []
 
-    def compute_batch(self, isTraining=True):
-        if isTraining:
+    def compute_batch(self, isTraining=True, useTrainingFunc=True):
+        if isTraining and useTrainingFunc:
             func = self.train_func
         else:
             func = self.test_func
@@ -646,7 +646,7 @@ class EntityVectorLinkExp(basePreProcessedQueries):
         for i in xrange(len(res_vec)):
             # save the results from this pass
             l = self.learning_targets[i]
-            l[0]['vals'][ l[1] ] = res_vec[i]
+            l[0]['vals'][ l[1] ] = float(res_vec[i])
         self.reset_accums()
 
     def check_params(self):
@@ -680,11 +680,6 @@ def evalCurrentState(trainingData=True, numSamples=50000):
     return r
 
 
-# In[63]:
-
-evalCurrentState(False, 10000000)
-
-
 # In[17]:
 
 import random
@@ -701,7 +696,7 @@ def augmentTrainingData():
         training = random.random() > .15
         for en in qu.values():
             en['training'] = training
-augmentTrainingData()
+#augmentTrainingData()
 
 queries_exp.check_params()
 
@@ -721,12 +716,12 @@ get_ipython().magic(u'time print queries_exp.compute_batch()')
 
 # In[25]:
 
-print evalCurrentState(False, 500000)
+#print evalCurrentState(False, 500000)
 
 
 # In[26]:
 
-print evalCurrentState(True, 500000)
+#print evalCurrentState(True, 500000)
 
 
 # In[22]:
@@ -737,11 +732,18 @@ for i in xrange(6):
     res = (i, queries_exp.compute_batch())
     print res
     exp_results.append(res)
-exp_results.append(('testing run', queries_exp.compute_batch(False)))
+queries_exp.num_training_items = 10000000  # make sure that we get all the testing examples
+exp_results.append(('testing run all', queries_exp.compute_batch()))
 exp_results.append(('training state', evalCurrentState(True)))
-exp_results.append(('testing state', evalCurrentState(False)))
-
+exp_results.append(('testing run', queries_exp.compute_batch(False)))
+#exp_results.append(('testing state', evalCurrentState(False)))
 
 # In[23]:
 
 print exp_results
+
+with open('/data/matthew/external-wiki2-results3.json', 'w+') as f:
+    json.dump({
+        'results': queries,
+        'run_info': exp_results
+    }, f)

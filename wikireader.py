@@ -11,6 +11,7 @@ class WikipediaReader(object):
     link_rg = re.compile('\[\[([^\]]*)\]\]')
     redirect_rg = re.compile('.*<redirect title="(.*)" />')
     not_link_match = re.compile('[^a-zA-Z0-9_]')
+    page_namespace_rg = re.compile('.*<ns>(.*)</ns>.*')
 
     def __init__(self, fname):
         self.wikidump_fname = fname
@@ -19,6 +20,7 @@ class WikipediaReader(object):
         current_page = None
         look_for_next_page = True
         page_text = None
+        page_namespace = 0
 
         title_rg = self.title_rg
 
@@ -37,12 +39,14 @@ class WikipediaReader(object):
                         redirect_page = self.redirect_rg.match(line).group(1)
                         self.readRedirect(current_page, redirect_page)
                         look_for_next_page = True
+                    elif '<ns>' in line:
+                        page_namespace = int(self.page_namespace_rg.match(line).group(1))
                     elif '<text' in line:
                         lines = [ line[line.index('>')+2:] ]
                         if '</text>' in lines[0]:
                             page_text = lines[0][:lines[0].index('</text>')]
                             look_for_next_page = True
-                            self.readPage(current_page, page_text)
+                            self.readPage(current_page, page_text, page_namespace)
                         else:
                             while True:
                                 line = f.next()
@@ -50,7 +54,7 @@ class WikipediaReader(object):
                                     lines.append(line[:line.index('</text>')])
                                     look_for_next_page = True
                                     page_text = '\n'.join(lines)
-                                    self.readPage(current_page, page_text)
+                                    self.readPage(current_page, page_text, page_namespace)
                                     break
                                 else:
                                     lines.append(line)
@@ -69,10 +73,10 @@ class WikipediaReader(object):
                 return pg, txt
         return [a for a in [s(r) for r in ret] if a is not None]
 
-    def readPage(self, title, content):
+    def readPage(self, title, content, namespace):
         pass
 
-    def readRedirect(self, title, target):
+    def readRedirect(self, title, target, namespace):
         pass
 
 
@@ -180,7 +184,8 @@ class WikipediaW2VParser(WikipediaReader, WikiRegexes):
     def _wikiResolveLink(self, match):
         page = super(WikipediaReader, self)._wikiResolveLink(match)
         surface = match.groups()[-1]
-        self.surface_to_title[surface][page] += 1
+        if '[' not in surface and '[' not in page:
+            self.surface_to_title[surface][page] += 1
         return page
 
     def save_redirects(self):
@@ -203,11 +208,13 @@ class WikipediaW2VParser(WikipediaReader, WikiRegexes):
         with open(self.surface_count_fname, 'w+') as f:
             json.dump(self.surface_to_title, f)
 
-    def readRedirect(self, title, target):
+    def readRedirect(self, title, target, namespace):
         if not self.read_pages:
             self.redirects[self.convertToTitle(title)] = self.convertToTitle(target)
 
-    def readPage(self, title, content):
+    def readPage(self, title, content, namespace):
+        if namespace != 0:
+            return  # ignore pages that are not in the core of wikipedia
         if self.read_pages:
             self.save_f.write(self._wikiToLinks(content))
             self.save_f.write('\n')

@@ -108,6 +108,78 @@ class WordVectors(object):
                 ret.append(0)
         return ret
 
+class WordTokenizer(object):
+
+    def __init__(self, vectors, random_init=False, add_unknown_words=False, sentence_length=200):
+        self.word_vectors = vectors
+        if random_init:
+            self.new_init = lambda x: np.random.uniform(-0.25, 0.25, x)
+        else:
+            self.new_init = lambda x: np.zeros(x)
+        self.add_unknown_words = add_unknown_words
+        self.sentence_length = sentence_length
+        
+        self.word_location = {}
+        self.word_count = 1
+        self.word_matrix = []
+        self.reverse_word_location = [None]
+        self.added_words = {}
+
+    @property
+    def vector_size(self):
+        return self.word_vectors.vector_size
+
+    def _add_unknown_word(self, word):
+        "add a zero vector, good for when there are a lot of these vectors and we want to ignore them"
+        r = self.added_words[word] = self.new_init(self.vector_size)
+        return r
+               
+    def __getitem__(self, word):
+        word = self.word_vectors.redirects.get(word, word)
+        r = self.word_vectors.vectors.get(word)
+        if r is not None:
+            return r
+        if self.add_unknown_words:
+            if word in self.added_words:
+                return self.added_words[word]
+            return self._add_unknown_word(word)
+            
+    def get_location(self, word):
+        r = self.word_location.get(word)
+        if r is not None:
+            return r
+        itm = self[word]
+        if itm is None:
+            return None
+        place = self.word_count
+        self.word_count += 1
+        self.word_matrix.append(itm)
+        self.word_location[word] = place
+        self.reverse_word_location.append(word)
+        return place
+
+    def get_word(self, location):
+        assert location < len(self.reverse_word_location)
+        return self.reverse_word_location[location]
+
+    def get_numpy_matrix(self):
+        return np.array(self.word_matrix)
+
+    def tokenize(self, wrds, length=None):
+        ret = []
+        if isinstance(wrds, basestring):
+            wrds = wrds.lower().split()
+        for i in xrange(length or self.sentence_length):
+            if i < len(wrds):
+                w = self.get_location(wrds[i])
+                if w is None:
+                    w = 0
+                ret.append(w)
+            else:
+                ret.append(0)
+        return ret
+
+
 
 import theano
 from lasagne.layers.base import Layer

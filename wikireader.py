@@ -37,7 +37,7 @@ class WikipediaReader(object):
                         current_page = title_rg.match(line).group(1)
                     elif '<redirect' in line:
                         redirect_page = self.redirect_rg.match(line).group(1)
-                        self.readRedirect(current_page, redirect_page)
+                        self.readRedirect(current_page, redirect_page, page_namespace)
                         look_for_next_page = True
                     elif '<ns>' in line:
                         page_namespace = int(self.page_namespace_rg.match(line).group(1))

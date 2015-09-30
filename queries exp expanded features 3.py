@@ -675,7 +675,7 @@ class EntityVectorLinkExp(basePreProcessedQueries):
                 target_match_counts = []
                 target_gold_loc = -1
                 target_group_start = len(self.current_target_input)
-                for target in targets['vals'].keys() + random.sample(self.documentvecs.reverse_word_location, 3):
+                for target in set(targets['vals'].keys() + random.sample(self.documentvecs.reverse_word_location, 3)) - {None,}:
                     # skip the items that we don't know the gold for
                     if not targets['gold'] and isTraining:
                         continue

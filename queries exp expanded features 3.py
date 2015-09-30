@@ -2,14 +2,14 @@
 # coding: utf-8
 
 # Working on adding a lot of features just to see if it can get the score up regardless of how complicated or where the data is coming from
-# 
+#
 # Features that I will be adding
-# 
+#
 # * Taget given surface counts
 # * words from the target and source document
 #   * possible back prop into these vectors, idea is to replace tf-idf with some nn and back prop here
 # * the extra feature are going in with the target vec when approperate
-#     
+#
 
 # In[ ]:
 
@@ -102,13 +102,13 @@ from wikireader import WikiRegexes, WikipediaReader
 # In[12]:
 
 def PreProcessedQueries(wikipedia_dump_fname, vectors=wordvectors, queries=queries, redirects=page_redirects, surface=surface_counts):
-    
+
     get_words = re.compile('[^a-zA-Z0-9 ]')
     get_link = re.compile('.*?\[(.*?)\].*?')
-    
+
     wordvec = WordTokenizer(vectors, sentence_length=200)
     documentvec = WordTokenizer(vectors, sentence_length=1)
-    
+
     queried_pages = set()
     for docs, q in queries.iteritems():
         wordvec.tokenize(docs)
@@ -143,14 +143,14 @@ def PreProcessedQueries(wikipedia_dump_fname, vectors=wordvectors, queries=queri
 #                 page_content[tt] = wordvec.tokenize(cnt)
 
 #     GetWikipediaWords(wikipedia_dump_fname).read()
-    
+
     rr = redirects
     rq = queried_pages
     rc = page_content
     rs = surface
 
     class PreProcessedQueriesCls(object):
-        
+
         wordvecs = wordvec
         documentvecs = documentvec
         queries = queries
@@ -158,8 +158,8 @@ def PreProcessedQueries(wikipedia_dump_fname, vectors=wordvectors, queries=queri
         queried_pages = rq
         page_content = rc
         surface_counts = rs
-        
-        
+
+
     return PreProcessedQueriesCls
 
 
@@ -208,7 +208,7 @@ class EntityVectorLinkExp(basePreProcessedQueries):
 
         self.embedding_W = theano.shared(self.wordvecs.get_numpy_matrix().astype(theano.config.floatX))
         self.embedding_W_docs = theano.shared(self.documentvecs.get_numpy_matrix()).astype(theano.config.floatX)
-        
+
 #         self.document_l = lasagne.layers.InputLayer(
 #             (None,self.document_length),
 #             input_var=self.x_document_input
@@ -414,7 +414,7 @@ class EntityVectorLinkExp(basePreProcessedQueries):
             (None,1,1,1),
             input_var=matched_surface_reshaped,
         )
-        
+
         self.target_matched_counts_input_l = lasagne.layers.InputLayer(
             (None,4),
             input_var=self.x_matches_counts.astype(theano.config.floatX),
@@ -632,9 +632,9 @@ class EntityVectorLinkExp(basePreProcessedQueries):
         self.current_learning_groups = []
         self.learning_targets = []
         self.current_surface_target_counts = []
-        
-        
-            
+
+
+
     def compute_batch(self, isTraining=True, useTrainingFunc=True):
         if isTraining and useTrainingFunc:
             func = self.train_func
@@ -643,7 +643,7 @@ class EntityVectorLinkExp(basePreProcessedQueries):
         self.reset_accums()
         self.total_links = 0
         self.total_loss = 0.0
-        
+
         self.failed_match = []
         self.failed_page_match = []
 
@@ -687,7 +687,7 @@ class EntityVectorLinkExp(basePreProcessedQueries):
                         # were not able to find this wikipedia document
                         # so just ignore tihs result since trying to train on it will cause
                         # issues
-                        # 
+                        #
                         # there are also nil queries that are generated for every document
                         # but we actually have a nil page that is getting referenced
                         # so just filter it out for now
@@ -787,7 +787,7 @@ def evalCurrentState(trainingData=True, numSamples=50000):
                     m = max(en['vals'].values())
                     if en['vals'][en['gold']] == m and m != 0:
                         all_correct += 1
-           
+
     r = all_measured, float(all_correct) / all_measured
     print r
     return r
@@ -824,7 +824,7 @@ queries_exp.num_training_items = 50000
 
 # In[17]:
 
-get_ipython().magic(u'time print queries_exp.compute_batch()')
+#get_ipython().magic(u'time print queries_exp.compute_batch()')
 
 
 # In[79]:
@@ -834,12 +834,12 @@ len(queries_exp.current_surface_target_counts)
 
 # In[ ]:
 
-evalCurrentState(False, 500000)
+#evalCurrentState(False, 500000)
 
 
 # In[ ]:
 
-evalCurrentState(True, 500000)
+#evalCurrentState(True, 500000)
 
 
 # In[ ]:
@@ -857,20 +857,4 @@ exp_results.append(('testing state', evalCurrentState(False, queries_exp.num_tra
 
 # In[48]:
 
-exp_results
-
-
-# In[32]:
-
-[(p, np.isnan(p.get_value(borrow=True)).any()) for p in queries_exp.all_params]
-
-
-# In[18]:
-
-queries_exp.failed_match
-
-
-# In[ ]:
-
-
-
+print exp_results

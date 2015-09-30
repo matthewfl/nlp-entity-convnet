@@ -756,7 +756,8 @@ class EntityVectorLinkExp(basePreProcessedQueries):
         for i in xrange(len(res_vec)):
             # save the results from this pass
             l = self.learning_targets[i]
-            l[0]['vals'][ l[1] ] = float(res_vec[i])
+            if l[1] in l[0]['vals']:
+                l[0]['vals'][ l[1] ] = float(res_vec[i])
         self.reset_accums()
 
     def check_params(self):
@@ -829,7 +830,7 @@ queries_exp.num_training_items = 50000
 
 # In[79]:
 
-len(queries_exp.current_surface_target_counts)
+#len(queries_exp.current_surface_target_counts)
 
 
 # In[ ]:

@@ -118,12 +118,16 @@ class WordTokenizer(object):
             self.new_init = lambda x: np.zeros(x)
         self.add_unknown_words = add_unknown_words
         self.sentence_length = sentence_length
-        
+
         self.word_location = {}
         self.word_count = 1
         self.word_matrix = []
         self.reverse_word_location = [None]
         self.added_words = {}
+
+        # add an entry for the None item
+        # use the stop symbol
+        self.word_matrix.append(self.word_vectors['</s>'])
 
     @property
     def vector_size(self):
@@ -133,7 +137,7 @@ class WordTokenizer(object):
         "add a zero vector, good for when there are a lot of these vectors and we want to ignore them"
         r = self.added_words[word] = self.new_init(self.vector_size)
         return r
-               
+
     def __getitem__(self, word):
         word = self.word_vectors.redirects.get(word, word)
         r = self.word_vectors.vectors.get(word)
@@ -143,7 +147,7 @@ class WordTokenizer(object):
             if word in self.added_words:
                 return self.added_words[word]
             return self._add_unknown_word(word)
-            
+
     def get_location(self, word):
         r = self.word_location.get(word)
         if r is not None:

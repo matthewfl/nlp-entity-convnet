@@ -127,7 +127,7 @@ class WordTokenizer(object):
 
         # add an entry for the None item
         # use the stop symbol
-        self.word_matrix.append(self.word_vectors['</s>'])
+        self.word_matrix.append(np.zeros(self.vector_size)) #self.word_vectors['</s>'])
 
     @property
     def vector_size(self):

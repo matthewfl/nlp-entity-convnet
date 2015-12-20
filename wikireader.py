@@ -1,6 +1,7 @@
 import re
 import json
 from collections import defaultdict
+import bz2
 
 #import regex
 
@@ -24,7 +25,7 @@ class WikipediaReader(object):
 
         title_rg = self.title_rg
 
-        with open(self.wikidump_fname) as f:
+        with self.open_f() as f:
             try:
                 while True:
                     line = f.next()
@@ -60,6 +61,11 @@ class WikipediaReader(object):
                                     lines.append(line)
             except StopIteration as e:
                 pass
+
+    def open_f(self):
+        if self.wikidump_fname.endswith('.bz2'):
+            return bz2.BZ2File(self.wikidump_fname, 'r', 10 * 1024 * 1024)
+        return open(self.wikidump_fname)
 
     @classmethod
     def getLinkTargets(cls, content):

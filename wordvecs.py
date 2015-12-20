@@ -1,6 +1,7 @@
 import numpy as np
 import json
 
+
 class WordVectors(object):
 
     def __init__(
@@ -25,7 +26,7 @@ class WordVectors(object):
 
         self._load()
 
-        self.word_matrix.append(np.zeros(self.vector_size))
+        self.word_matrix.append(np.zeros(self.vector_size, dtype='float32'))
         if redir_fname:
             self.redirects = json.load(open(redir_fname))
         else:
@@ -53,15 +54,15 @@ class WordVectors(object):
 
     def _add_unknown_word_rand(self, word):
         "add an unknown word useing a new random vector, good for when training the vectors"
-        self.vectors[word] = np.random.uniform(-0.25, 0.25, self.vector_size)
+        self.vectors[word] = np.random.uniform(-0.25, 0.25, self.vector_size, dtype='float32')
         if self.have_negvectors:
-            self.negvectors[word] = np.random.uniform(-0.25, 0.25, self.vector_size)
+            self.negvectors[word] = np.random.uniform(-0.25, 0.25, self.vector_size, dtype='float32')
 
     def _add_unknown_word(self, word):
         "add a zero vector, good for when there are a lot of these vectors and we want to ignore them"
-        self.vectors[word] = np.zeros(self.vector_size)
+        self.vectors[word] = np.zeros(self.vector_size, dtype='float32')
         if self.have_negvectors:
-            self.negvectors[word] = np.zeros(self.vector_size)
+            self.negvectors[word] = np.zeros(self.vector_size, dtype='float32')
 
     def __getitem__(self, word):
         word = self.redirects.get(word, word)
@@ -106,7 +107,8 @@ class WordVectors(object):
                 ret.append(w)
             else:
                 ret.append(0)
-        return ret
+        return np.array(ret, dtype='int32')
+
 
 class WordTokenizer(object):
 
@@ -127,7 +129,7 @@ class WordTokenizer(object):
 
         # add an entry for the None item
         # use the stop symbol
-        self.word_matrix.append(np.zeros(self.vector_size)) #self.word_vectors['</s>'])
+        self.word_matrix.append(np.zeros(self.vector_size, dtype='float32')) #self.word_vectors['</s>'])
 
     @property
     def vector_size(self):
@@ -181,7 +183,7 @@ class WordTokenizer(object):
                 ret.append(w)
             else:
                 ret.append(0)
-        return ret
+        return np.array(ret, dtype='int32')
 
 
 
@@ -261,5 +263,4 @@ class EmbeddingLayer(Layer):
         return r
 
     def get_output_for(self, input, **kwargs):
-        # if the value at some position is -1, then need to
         return self.W[input].reshape(self.get_output_shape_for(input.shape))

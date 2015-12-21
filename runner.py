@@ -4,6 +4,7 @@ import csv
 import sys
 import atexit
 import os
+import re
 
 import h5py
 
@@ -15,7 +16,7 @@ from baseWikipediaLinker import PreProcessedQueries
 
 queries = None
 featureNames = None
-surface_count = None
+surface_counts = None
 wordvectors = None
 
 # result save files
@@ -24,6 +25,12 @@ h5_f = None
 
 # baseModel
 baseModel = None
+
+# the ml model
+queries_exp = None
+
+debug_log = []
+results_log = []
 
 
 def cleanWhitespaces():
@@ -46,13 +53,18 @@ def loadQueries(fname):
     with open(fname) as f:
         q = json.load(f)
         queries = q['queries']
-        featureNames = q['featureNames']
+        featureNames = q['featIndex']
+    for q,v in queries.items():
+        for v2 in v.values():
+            gi = set(g.replace('_', ' ') for g in v2['gold']) | set(v2['gold'])
+            v2['gold'] = list(gi)
     cleanWhitespaces()
 
+
 def loadSurfaceCount(fname):
-    global surface_count
+    global surface_counts
     with open(fname) as f:
-        surface_count = json.load(f)
+        surface_counts = json.load(f)
     # try and make the surfaces items match what we are looking for
     surface_counts_re = re.compile('([\.,!\?])')
     for sk in surface_counts.keys():
@@ -80,14 +92,26 @@ def argsp():
     aparser.add_argument('--redirects', help='json of the redirects on wikipedia', required=True)
     aparser.add_argument('--wiki_dump', help='raw wiki dump file', required=True)
     aparser.add_argument('--batch_size', help='size of training batch', type=int, default=250)
-    aparser.add_argument('--dim_vec_compared', help='size of the vectors to compare for cosine-sim', type=int, default=150)
+    #aparser.add_argument('--dim_vec_compared', help='size of the vectors to compare for cosine-sim', type=int, default=150)
+    aparser.add_argument('--num_iter', help='number of training iterations', default=10)
     aparser.add_argument('--raw_output', help='h5py file that represents raw information about this run', required=True)
     aparser.add_argument('--csv_output', help='csv results from this run', required=True)
+    aparser.add_argument('--exp_model', help='the file to load for the experiment', default='exp_multi_conv_cosim')
 
     return aparser
 
 def save_results():
-    pass
+    global debug_log, results_log, csv_f, h5_f
+
+    if len(results_log) != 0:
+        csv_f.writerow(['Results:'])
+        csv_f.writerows(results_log)
+        h5_f['results'] = results_log
+
+    if len(debug_log) != 0:
+        csv_f.writerow(['Log:'])
+        csv_f.writerows(debug_log)
+        h5_f['debug'] = debug_log
 
 
 def potentially_rename_file(fname):
@@ -136,13 +160,38 @@ def main():
     loadSurfaceCount(args.surface_count)
 
     # construct the base wikipedia information given the currently loaded queries, redirects, etc
+    print 'Finding relevant pages from wikipedia'
     global baseModel
-    baseModel = PreProcessedQueries(args.wiki_dump, wordvectors, queries, wordvectors.redirects, surface_count)
+    baseModel = PreProcessedQueries(args.wiki_dump, wordvectors, queries, wordvectors.redirects, surface_counts)
 
+    print 'Loading model'
+    global queries_exp
+    queries_exp = __import__(aparser.exp_model).queries_exp
 
+    queries_exp.num_training_items = 50000000  # max number of items 50,000,000
 
+    queries_exp.batch_size = args.batch_size
 
-    # load the base information for the queries
+    # run the model
+    results_log.append(('todo',))
+    for i in xrange(aparser.num_iter):
+        # run the training step
+        print 'Training step', i
+        res = ('Training step', i, queries_exp.compute_batch())
+        debug_log.append(res)
+        print res
+        tstate = ('training state', evalCurrentState(queries, True, queries_exp.num_training_items))
+        print tstate
+        debug_log.append(tstate)
+        # run the testing step
+        tres = ('Testing step', queries_exp.compute_batch(False))
+        print tres
+        debug_log.append(tres)
+        tstate = ('testing state', evalCurrentState(False, queries_exp.num_training_items))
+        print tstate
+        debug_log.append(tstate)
+        f1_res = evalCurrentStateFahrni(False, queries_exp.num_training_items)
+        debug_log.append(str(f1_res))
 
 
 

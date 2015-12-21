@@ -65,12 +65,13 @@ def PreProcessedQueries(
     rs = surface
 
     qp = queried_pages
+    qq = queries
 
     class PreProcessedQueriesCls(object):
 
         wordvecs = wordvec
         documentvecs = documentvec
-        queries = queries
+        queries = qq
         redirects = rr
         queried_pages = rq
         page_content = rc

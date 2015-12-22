@@ -5,6 +5,7 @@ import sys
 import atexit
 import os
 import re
+import cPickle as pickle
 
 import h5py
 
@@ -93,7 +94,7 @@ def argsp():
     aparser.add_argument('--wiki_dump', help='raw wiki dump file', required=True)
     aparser.add_argument('--batch_size', help='size of training batch', type=int, default=250)
     #aparser.add_argument('--dim_vec_compared', help='size of the vectors to compare for cosine-sim', type=int, default=150)
-    aparser.add_argument('--num_iter', help='number of training iterations', default=10)
+    aparser.add_argument('--num_iter', help='number of training iterations', type=int, default=10)
     aparser.add_argument('--raw_output', help='h5py file that represents raw information about this run', required=True)
     aparser.add_argument('--csv_output', help='csv results from this run', required=True)
     aparser.add_argument('--exp_model', help='the file to load for the experiment', default='exp_multi_conv_cosim')
@@ -111,7 +112,7 @@ def save_results():
     if len(debug_log) != 0:
         csv_f.writerow(['Log:'])
         csv_f.writerows(debug_log)
-        h5_f['debug'] = debug_log
+        h5_f['debug'] = pickle.dumps(debug_log)
 
 
 def potentially_rename_file(fname):
@@ -187,11 +188,11 @@ def main():
         tres = ('Testing step', queries_exp.compute_batch(False))
         print tres
         debug_log.append(tres)
-        tstate = ('testing state', evalCurrentState(False, queries_exp.num_training_items))
+        tstate = ('testing state', evalCurrentState(queries, False, queries_exp.num_training_items))
         print tstate
         debug_log.append(tstate)
-        f1_res = evalCurrentStateFahrni(False, queries_exp.num_training_items)
-        debug_log.append(str(f1_res))
+        f1_res = evalCurrentStateFahrni(queries, False, queries_exp.num_training_items)
+        debug_log.append([str(dict(f1_res[0])), f1_res[1]])
 
 
 

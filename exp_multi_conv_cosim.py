@@ -78,7 +78,7 @@ class EntityVectorLinkExp(baseModel):
         #self.y_answer = T.ivector('y_ans')  # (Not used) contains the location of the gold answer so we can compute the loss
         self.y_isgold = T.vector('y_gold', dtype='int8')  # is 1 if the gold item, 0 otherwise
         self.y_grouping = T.imatrix('y_grouping')  # matrix containing [start_idx, end_idx, gold_idx]
-        self.y_boosted = T.vector('y_boosted')  # only used if boosting enabled, vector of how much to boost items
+        #self.y_boosted = T.vector('y_boosted')  # only used if boosting enabled, vector of how much to boost items
 
         self.embedding_W = theano.shared(self.wordvecs.get_numpy_matrix().astype(theano.config.floatX),name='embedding_W')
         self.embedding_W_docs = theano.shared(self.documentvecs.get_numpy_matrix().astype(theano.config.floatX),name='embedding_W_docs')
@@ -696,10 +696,10 @@ class EntityVectorLinkExp(baseModel):
 
         self.loss_vec = self.groupped_res - self.gold_res #self.true_output[self.y_grouping[:,2]]
 
-        if self.enable_boosting:
-            self.loss_scalar = T.dot(self.y_boosted, self.loss_vec)
-        else:
-            self.loss_scalar = self.loss_vec.sum()
+        #if self.enable_boosting:
+        #    self.loss_scalar = T.dot(self.y_boosted, self.loss_vec)
+        #else:
+        self.loss_scalar = self.loss_vec.sum()
 
 #         self.all_params = (
 #             lasagne.layers.get_all_params(self.document_simple_sum_l) +
@@ -740,7 +740,7 @@ class EntityVectorLinkExp(baseModel):
             self.x_denotaiton_features, self.x_query_featurs, self.x_query_link_id, self.x_denotation_ranges,
             self.x_target_link_id,
             #self.y_answer,
-            self.y_grouping, self.y_boosted,
+            self.y_grouping, #self.y_boosted,
             self.y_isgold,
         ]
 
@@ -784,7 +784,7 @@ class EntityVectorLinkExp(baseModel):
         self.current_learning_groups = []
         self.learning_targets = []
         self.current_surface_target_counts = []
-        self.current_boosted_groups = []
+        #self.current_boosted_groups = []
 
         self.current_queries = []
         self.current_denotations_feats_indicators = []
@@ -802,7 +802,7 @@ class EntityVectorLinkExp(baseModel):
         self.reset_accums()
         self.total_links = 0
         self.total_loss = 0.0
-        self.total_boosted_loss = 0.0
+        #self.total_boosted_loss = 0.0
 
         get_words = re.compile('[^a-zA-Z0-9 ]')
         get_link = re.compile('.*?\[(.*?)\].*?')
@@ -950,7 +950,7 @@ class EntityVectorLinkExp(baseModel):
                         [target_group_start, target_group_end,
                         -1 # gold_loc
                         ])
-                    self.current_boosted_groups.append(targets['boosted'])
+                    #self.current_boosted_groups.append(targets['boosted'])
 
                     self.current_queries += queries_feats_indicators
 
@@ -967,15 +967,15 @@ class EntityVectorLinkExp(baseModel):
                 self.run_batch(func)
                 sys.stderr.write('%i\r'%self.total_links)
                 if self.total_links > self.num_training_items:
-                    return self.total_loss / self.total_links, self.total_boosted_loss / self.total_links
+                    return self.total_loss / self.total_links, #self.total_boosted_loss / self.total_links
 
         if len(self.current_target_id) > 0:
             self.run_batch(func)
 
-        return self.total_loss / self.total_links, self.total_boosted_loss / self.total_links
+        return self.total_loss / self.total_links, #self.total_boosted_loss / self.total_links
 
     def run_batch(self, func):
-        res_vec, loss_sum, loss_boosted, loss_vec, = func(
+        res_vec, loss_sum, _, loss_vec, = func(
             self.current_documents,
             self.current_surface_link, self.current_surface_context, self.current_link_id,
             self.current_target_input, self.current_target_matches_surface, self.current_surface_target_counts, self.current_target_id,
@@ -983,13 +983,13 @@ class EntityVectorLinkExp(baseModel):
             self.current_denotations_feats_indicators, self.current_queries, self.current_denotations_related_query, self.current_denotations_range,
             self.current_denotation_targets_linked,
             #self.current_target_goal,
-            self.current_learning_groups, self.current_boosted_groups,
+            self.current_learning_groups, #self.current_boosted_groups,
             self.current_target_is_gold,
         )
         self.check_params()
         self.total_links += len(self.current_target_id)
         self.total_loss += loss_sum
-        self.total_boosted_loss += loss_boosted
+        #self.total_boosted_loss += loss_boosted
         learned_groups = []  # right...dict not hashable....
         for i in xrange(len(res_vec)):
             # save the results from this pass

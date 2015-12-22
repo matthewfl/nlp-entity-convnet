@@ -776,7 +776,7 @@ class EntityVectorLinkExp(baseModel):
             self.current_target_is_gold,
         )
         self.check_params()
-        self.total_links += len(self.current_link_id)
+        self.total_links += len(self.current_target_id)
         self.total_loss += 0
 
         # need to match with the conv names/results
@@ -798,7 +798,7 @@ class EntityVectorLinkExp(baseModel):
                 higher_p = res[i][:, dim, :, 0] > current_min
                 if higher_p.any():
                     higher_where = np.where(higher_p)
-                    higher_vals = res[i][higher_where[0], dim, higher_where[1]]
+                    higher_vals = res[i][higher_where[0], dim, higher_where[1], 0]
                     current_words = set(w[1] for w in self.conv_max[i][dim])
                     higher_words = [
                         # np won't do this selecting in one shot
@@ -816,9 +816,8 @@ class EntityVectorLinkExp(baseModel):
                                 # we should remove the min element
                                 itm_arr[0] = (hv, words)
                                 itm_arr.sort()
-                                current_words = set(w[1] for w in self.conv_max[i][dim])
-                                #import ipdb; ipdb.set_trace()
-
+                                current_words = set(w[1] for w in itm_arr)
+        
         self.reset_accums()
 
 
@@ -826,9 +825,20 @@ class EntityVectorLinkExp(baseModel):
         assert len(self.all_conv_names) == 5
         assert len(self.all_conv_results) == 5
 
-        per_act = [(0, ())] * num_per_activation
-        per_conv = [per_act] * self.dim_compared_vec
-        self.conv_max = [per_conv] * len(self.all_conv_names)
+        #per_act = [(0, ())] * num_per_activation
+        #per_conv = [per_act] * self.dim_compared_vec
+        #self.conv_max = [per_conv] * len(self.all_conv_names)
+
+        self.conv_max = [
+            [
+                [
+                    (0, ())
+                    for c in xrange(num_per_activation)
+                ]
+                for b in xrange(self.dim_compared_vec)
+            ]
+            for a in xrange(len(self.all_conv_names))
+        ]
 
         self.compute_batch(True, batch_run_func=self.run_batch_max_activate)
         self.compute_batch(False, batch_run_func=self.run_batch_max_activate)
@@ -839,7 +849,7 @@ class EntityVectorLinkExp(baseModel):
             for di in xrange(self.dim_compared_vec):
                 for ai in xrange(num_per_activation):
                     a = self.conv_max[ci][di][ai]
-                    self.conv_max[ci][di][ai] = (a[0], ' '.join([self.wordvecs.get_word(w) for w in a[1]]))
+                    self.conv_max[ci][di][ai] = (a[0], ' '.join([str(self.wordvecs.get_word(w)) for w in a[1]]))
 
         return self.conv_max
 

@@ -166,7 +166,7 @@ def main():
 
     print 'Loading model'
     global queries_exp
-    queries_exp = __import__(aparser.exp_model).queries_exp
+    queries_exp = __import__(args.exp_model).queries_exp
 
     queries_exp.num_training_items = 50000000  # max number of items 50,000,000
 
@@ -174,7 +174,7 @@ def main():
 
     # run the model
     results_log.append(('todo',))
-    for i in xrange(aparser.num_iter):
+    for i in xrange(args.num_iter):
         # run the training step
         print 'Training step', i
         res = ('Training step', i, queries_exp.compute_batch())

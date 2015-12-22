@@ -7,16 +7,18 @@ import theano
 import numpy as np
 from helpers import SimpleMaxingLayer, SimpleAverageLayer
 from wordvecs import WordVectors, EmbeddingLayer, WordTokenizer
+from wikireader import WikiRegexes
 #import json
 import re
 import random
+import sys
 
 theano.config.floatX = 'float32'
 #theano.config.linker = 'cvm_nogc'
 theano.config.openmp = True
 theano.config.openmp_elemwise_minsize = 20000
 
-from runner import baseModel
+from __main__ import baseModel, featureNames as featuresNames
 
 
 class EntityVectorLinkExp(baseModel):
@@ -963,6 +965,7 @@ class EntityVectorLinkExp(baseModel):
             if len(self.current_target_id) > self.batch_size:
 #                 return
                 self.run_batch(func)
+                sys.stderr.write('%i\r'%self.total_links)
                 if self.total_links > self.num_training_items:
                     return self.total_loss / self.total_links, self.total_boosted_loss / self.total_links
 

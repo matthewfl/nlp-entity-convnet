@@ -108,7 +108,7 @@ class EntityVectorLinkExp(baseModel):
         )
 
         self.all_conv_names.append('document_conv')
-        self.all_conv_results.append(lasagne.layer.get_output(self.document_simple_conv1_l))
+        self.all_conv_results.append(lasagne.layers.get_output(self.document_simple_conv1_l))
 
         self.document_simple_sum_l = lasagne.layers.Pool2DLayer(
             self.document_simple_conv1_l,
@@ -117,7 +117,7 @@ class EntityVectorLinkExp(baseModel):
             mode='sum',
         )
 
-        self.all_conv_pool_results.append(lasagne.layer.get_output(self.document_simple_sum_l))
+        self.all_conv_pool_results.append(lasagne.layers.get_output(self.document_simple_sum_l))
 
         self.document_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.document_simple_sum_l, ([0],-1)))
@@ -148,7 +148,7 @@ class EntityVectorLinkExp(baseModel):
         )
 
         self.all_conv_names.append('surface_context_conv')
-        self.all_conv_results.append(lasagne.layer.get_output(self.surface_context_conv1_l))
+        self.all_conv_results.append(lasagne.layers.get_output(self.surface_context_conv1_l))
 
         self.surface_context_pool1_l = lasagne.layers.Pool2DLayer(
             self.surface_context_conv1_l,
@@ -157,7 +157,7 @@ class EntityVectorLinkExp(baseModel):
             mode='sum',   # WAS 'MAX' FOR SOME REASON
         )
 
-        self.all_conv_pool_results.append(lasagne.layer.get_output(self.surface_context_pool1_l))
+        self.all_conv_pool_results.append(lasagne.layers.get_output(self.surface_context_pool1_l))
 
         self.surface_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.surface_context_pool1_l, ([0], -1))
@@ -185,7 +185,7 @@ class EntityVectorLinkExp(baseModel):
         )
 
         self.all_conv_names.append('surface_conv')
-        self.all_conv_results.append(lasagne.lasagne.get_output(self.surface_conv1_l))
+        self.all_conv_results.append(lasagne.layers.get_output(self.surface_conv1_l))
 
         self.surface_pool1_l = lasagne.layers.Pool2DLayer(
             self.surface_conv1_l,
@@ -194,7 +194,7 @@ class EntityVectorLinkExp(baseModel):
             mode='sum',
         )
 
-        self.all_conv_pool_results.append(lasagne.layer.get_output(self.surface_pool1_l))
+        self.all_conv_pool_results.append(lasagne.layers.get_output(self.surface_pool1_l))
 
         self.surface_words_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.surface_pool1_l, ([0], -1))
@@ -249,7 +249,7 @@ class EntityVectorLinkExp(baseModel):
         )
 
         self.all_conv_names.append('target_title_conv')
-        self.all_conv_results.append(lasagne.layer.get_output(self.target_words_conv1_l))
+        self.all_conv_results.append(lasagne.layers.get_output(self.target_words_conv1_l))
 
         self.target_words_pool1_l = lasagne.layers.Pool2DLayer(
             self.target_words_conv1_l,
@@ -258,7 +258,7 @@ class EntityVectorLinkExp(baseModel):
             mode='sum',
         )
 
-        self.all_conv_pool_results.append(lasagne.layer.get_output(self.target_words_pool1_l))
+        self.all_conv_pool_results.append(lasagne.layers.get_output(self.target_words_pool1_l))
 
         self.target_title_out = lasagne.layers.get_output(
             lasagne.layers.reshape(self.target_words_pool1_l, ([0],-1))
@@ -288,7 +288,7 @@ class EntityVectorLinkExp(baseModel):
         )
 
         self.all_conv_names.append('target_body_conv')
-        self.all_conv_results.append(lasagne.lasagne.get_output(self.target_body_simple_conv1_l))
+        self.all_conv_results.append(lasagne.layers.get_output(self.target_body_simple_conv1_l))
 
         self.target_body_simple_sum_l = lasagne.layers.Pool2DLayer(
             self.target_body_simple_conv1_l,
@@ -297,7 +297,7 @@ class EntityVectorLinkExp(baseModel):
             mode='sum',
         )
 
-        self.all_conv_pool_results.append(lasagne.layer.get_output(self.target_body_simple_sum_l))
+        self.all_conv_pool_results.append(lasagne.layers.get_output(self.target_body_simple_sum_l))
 
         self.target_out = lasagne.layers.get_output(
             lasagne.layers.reshape(self.target_body_simple_sum_l, ([0],-1)))
@@ -792,14 +792,14 @@ class EntityVectorLinkExp(baseModel):
         # res shape: (document index, num filters, output rows, output columns [word vectors, should be 1])
 
         for i in xrange(len(res)):
-            conv_len = conv_inputs[i].shape[1] - res[i].shape[2]
+            conv_len = conv_inputs[i].shape[1] - res[i].shape[2] + 1
             for dim in xrange(self.dim_compared_vec):
-                curren_min = self.conv_max[i][dim][0][0]
+                current_min = self.conv_max[i][dim][0][0]
                 higher_p = res[i][:, dim, :, 0] > current_min
                 if higher_p.any():
-                    higher_where = np.where(higher_where)
+                    higher_where = np.where(higher_p)
                     higher_vals = res[i][higher_where[0], dim, higher_where[1]]
-                    current_words = set(w[0] for w in self.conv_max[i][dim])
+                    current_words = set(w[1] for w in self.conv_max[i][dim])
                     higher_words = [
                         # np won't do this selecting in one shot
                         conv_inputs[i][higher_where[0][w], higher_where[1][w]:(higher_where[1][w]+conv_len)]
@@ -816,6 +816,8 @@ class EntityVectorLinkExp(baseModel):
                                 # we should remove the min element
                                 itm_arr[0] = (hv, words)
                                 itm_arr.sort()
+                                current_words = set(w[1] for w in self.conv_max[i][dim])
+                                #import ipdb; ipdb.set_trace()
 
         self.reset_accums()
 
@@ -837,7 +839,7 @@ class EntityVectorLinkExp(baseModel):
             for di in xrange(self.dim_compared_vec):
                 for ai in xrange(num_per_activation):
                     a = self.conv_max[ci][di][ai]
-                    self.conv_max[ci][di][ai] = (a[0], ' '.join([self.wordvec.get_word(w) for w in a[1]]))
+                    self.conv_max[ci][di][ai] = (a[0], ' '.join([self.wordvecs.get_word(w) for w in a[1]]))
 
         return self.conv_max
 

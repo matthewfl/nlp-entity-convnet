@@ -125,7 +125,7 @@ def save_results():
         params = h5_f.create_group('params')
         for p in set(queries_exp.all_params):
             params[str(p)] = p.get_value(borrow=True)
-        h5_f['params_featureNames'] = featureNames
+        h5_f['params_featureNames'] = pickle.dumps(featureNames)
 
         # the attr might not be set if it did not get this far
         if getattr(queries_exp, 'conv_max', None):
@@ -138,7 +138,7 @@ def save_results():
                     if len(cv[ci]) > di:
                         # this item has a dimention at least this big
                         for ai in xrange(len(cv[ci][di]), 0, -1):
-                            csv_f.writerow([queries_exp.all_conv_names[ci], di, cv[ci][di][ai][0], cv[ci][di][ai][1]])
+                            csv_f.writerow([queries_exp.all_conv_names[ci], di, float(cv[ci][di][ai][0]), cv[ci][di][ai][1]])
 
 
 def potentially_rename_file(fname):

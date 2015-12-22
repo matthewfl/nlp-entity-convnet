@@ -52,6 +52,9 @@ class EntityVectorLinkExp(baseModel):
 
         self.all_params = []
 
+        self.all_conv_results = []
+        self.all_conv_pool_results = []
+
         self.x_document_input = T.imatrix('x_doc')  # words from the source document
 
         self.x_document_id = T.ivector('x_doc_id')  # index of which source doucment this is from
@@ -65,8 +68,6 @@ class EntityVectorLinkExp(baseModel):
         self.x_target_document_words = T.imatrix('x_target_document_words')  # words from the body of target document
         self.x_link_id = T.ivector('x_link_id')  # indx of what link to compare to in the matrix
 
-        #self.x_indicator_features = T.matrix('x_indicator_features', dtype='int8')
-
         self.x_denotaiton_features = T.matrix('x_denotation_ind_feats', dtype='int8')  # the joint denotation query features
         self.x_query_featurs = T.matrix('x_query_ind_feats', dtype='int8')  # the query features
         self.x_query_link_id = T.ivector('x_match_query')  # the query that a denotation links to
@@ -74,28 +75,17 @@ class EntityVectorLinkExp(baseModel):
 
         self.x_target_link_id = T.ivector('x_match_target')  # the target document that maches with a given denotation
 
-        #self.y_score = T.vector('y')
-        #self.y_answer = T.ivector('y_ans')  # (Not used) contains the location of the gold answer so we can compute the loss
         self.y_isgold = T.vector('y_gold', dtype='int8')  # is 1 if the gold item, 0 otherwise
         self.y_grouping = T.imatrix('y_grouping')  # matrix containing [start_idx, end_idx, gold_idx]
-        #self.y_boosted = T.vector('y_boosted')  # only used if boosting enabled, vector of how much to boost items
 
         self.embedding_W = theano.shared(self.wordvecs.get_numpy_matrix().astype(theano.config.floatX),name='embedding_W')
         self.embedding_W_docs = theano.shared(self.documentvecs.get_numpy_matrix().astype(theano.config.floatX),name='embedding_W_docs')
 
-#         def convSoftMax(t):
-#             shape = t.shape  # (document_sample, num_filters, output_rows, output_cols)
-#             new_shape = (shape[0] * shape[2] * shape[3], shape[1])
-#             return T.nnet.softmax(t.reshape(new_shape)).reshape(shape)
-
-#             return lasagne.nonlinearities.leaky_rectify(t)
-
         def augRectify(x):
             # if x is zero, then the gradient failes due to computation: x / |x|
-            #return lasagne.nonlinearities.leaky_rectify(x + .001) #- .001
             return T.maximum(x, -.01 * x)
 
-        simpleConvNonLin = augRectify # lasagne.nonlinearities.rectify# leaky_rectify
+        simpleConvNonLin = augRectify
 
         self.document_l = lasagne.layers.InputLayer(
             (None,self.document_length),
@@ -113,40 +103,15 @@ class EntityVectorLinkExp(baseModel):
             num_filters=self.dim_compared_vec,
             filter_size=(2, self.wordvecs.vector_size),
             name='document_simple_conv',
-            nonlinearity=simpleConvNonLin,#lasagne.nonlinearities.leaky_rectify,
+            nonlinearity=simpleConvNonLin,
         )
 
         self.document_simple_sum_l = lasagne.layers.Pool2DLayer(
-            #lasagne.layers.reshape(self.document_embedding_l, ([0],[3],[2],1)),
             self.document_simple_conv1_l,
             name='document_simple_pool',
             pool_size=(self.document_length - 2, 1),
             mode='sum',
         )
-
-#         self.document_conv1_l = lasagne.layers.Conv2DLayer(
-#             self.document_embedding_l,
-#             num_filters=30,  # was 75, 100, 500
-#             filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
-#             name='document_conv1',
-#             nonlinearity=self.main_nl,# lasagne.nonlinearities.softmax,  # was leaky_rectify
-#         )
-
-#         self.document_max_l = lasagne.layers.Pool2DLayer(
-#             self.document_conv1_l,
-#             name='document_pool1',
-#             pool_size=(self.document_length - self.num_words_to_use_conv, 1),
-#             mode='max',  # was sum
-#         )
-
-#         document_output_length = 25 # was 100, 200
-
-#         self.document_dens1 = lasagne.layers.DenseLayer(
-#             self.document_max_l,
-#             num_units=document_output_length,
-#             name='doucment_dens1',
-#             nonlinearity=lasagne.nonlinearities.leaky_rectify,
-#         )
 
         self.document_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.document_simple_sum_l, ([0],-1)))
@@ -170,17 +135,17 @@ class EntityVectorLinkExp(baseModel):
 
         self.surface_context_conv1_l = lasagne.layers.Conv2DLayer(
             self.surface_context_embedding_l,
-            num_filters=self.dim_compared_vec,  # was 300
+            num_filters=self.dim_compared_vec,
             filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
             name='surface_cxt_conv1',
-            nonlinearity=simpleConvNonLin,# self.main_nl,
+            nonlinearity=simpleConvNonLin,
         )
 
         self.surface_context_pool1_l = lasagne.layers.Pool2DLayer(
             self.surface_context_conv1_l,
             name='surface_cxt_pool1',
             pool_size=(self.sentence_length - self.num_words_to_use_conv, 1),
-            mode='max', #sum',
+            mode='sum',   # WAS 'MAX' FOR SOME REASON
         )
 
         self.surface_output = lasagne.layers.get_output(
@@ -202,10 +167,10 @@ class EntityVectorLinkExp(baseModel):
 
         self.surface_conv1_l = lasagne.layers.Conv2DLayer(
             self.surface_embedding_l,
-            num_filters=self.dim_compared_vec,  # was 300
+            num_filters=self.dim_compared_vec,
             filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
             name='surface_conv1',
-            nonlinearity=simpleConvNonLin, #self.main_nl,
+            nonlinearity=simpleConvNonLin,
         )
 
         self.surface_pool1_l = lasagne.layers.Pool2DLayer(
@@ -220,9 +185,6 @@ class EntityVectorLinkExp(baseModel):
         )
 
         self.all_params += lasagne.layers.get_all_params(self.surface_pool1_l)
-
-        ##################################################
-        ## merge the documents with the surface info
 
 
         ###################################################
@@ -249,24 +211,6 @@ class EntityVectorLinkExp(baseModel):
             input_var=self.x_matches_counts.astype(theano.config.floatX),
         )
 
-#         # embedding of the target documents
-#         self.target_embedding_l = EmbeddingLayer(
-#             lasagne.layers.reshape(self.target_input_l, ([0], 1)),
-#             W=self.embedding_W_docs,
-#             add_word_params=False,
-#         )
-
-#         self.target_embedding_dens_l = lasagne.layers.DenseLayer(
-#             lasagne.layers.reshape(self.target_embedding_l, ([0], -1)),
-#             name='target_embedding_dens',
-#             num_units=self.dim_compared_vec,
-#             nonlinearity=augRectify,# lasagne.nonlinearities.leaky_rectify,  # should be compariable to the simpleConvNonLin
-#         )
-
-#         self.target_embedding_out = lasagne.layers.get_output(
-#             lasagne.layers.reshape(self.target_embedding_dens_l, ([0],-1)),
-#         )
-
         # words from the title of the target
         self.target_words_input_l = lasagne.layers.InputLayer(
             (None,self.sentence_length_short),
@@ -283,15 +227,15 @@ class EntityVectorLinkExp(baseModel):
             self.target_words_embedding_l,
             name='target_wrds_conv1',
             filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
-            num_filters=self.dim_compared_vec,  # was 75, 150, 350
-            nonlinearity=simpleConvNonLin,# self.main_nl,# lasagne.nonlinearities.leaky_rectify,
+            num_filters=self.dim_compared_vec,
+            nonlinearity=simpleConvNonLin,
         )
 
         self.target_words_pool1_l = lasagne.layers.Pool2DLayer(
             self.target_words_conv1_l,
             name='target_wrds_pool1',
             pool_size=(self.sentence_length_short - self.num_words_to_use_conv, 1),
-            mode='sum',  # was sum
+            mode='sum',
         )
 
         self.target_title_out = lasagne.layers.get_output(
@@ -318,38 +262,15 @@ class EntityVectorLinkExp(baseModel):
             name='target_body_simple_conv',
             filter_size=(2, self.wordvecs.vector_size),
             num_filters=self.dim_compared_vec,
-            nonlinearity=simpleConvNonLin,# self.main_nl,# lasagne.nonlinearities.leaky_rectify,
+            nonlinearity=simpleConvNonLin,
         )
 
         self.target_body_simple_sum_l = lasagne.layers.Pool2DLayer(
-            #lasagne.layers.reshape(self.target_body_words_embedding_l, ([0],[3],[2],1)),
             self.target_body_simple_conv1_l,
             name='target_body_simple_sum',
             pool_size=(self.sentence_length - 2, 1),
             mode='sum',
         )
-
-#         self.target_body_words_conv1_l = lasagne.layers.Conv2DLayer(
-#             self.target_body_words_embedding_l,
-#             name='target_body_wrds_conv1',
-#             filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
-#             num_filters=150,
-#             nonlinearity=lasagne.nonlinearities.leaky_rectify,
-#         )
-
-#         self.target_body_words_pool1_l = lasagne.layers.Pool2DLayer(
-#             self.target_body_words_conv1_l,
-#             name='target_body_wrds_pool1',
-#             pool_size=(self.sentence_length - self.num_words_to_use_conv, 1),
-#             mode='max',
-#         )
-
-#         self.target_merge_l = lasagne.layers.ConcatLayer(
-#             [lasagne.layers.reshape(self.target_words_pool1_l, ([0], [1])),
-#              lasagne.layers.reshape(self.target_body_words_pool1_l, ([0], [1])),
-#             # lasagne.layers.reshape(self.target_embedding_l, ([0], [3]))
-#             ]
-#         )
 
         self.target_out = lasagne.layers.get_output(
             lasagne.layers.reshape(self.target_body_simple_sum_l, ([0],-1)))
@@ -359,70 +280,30 @@ class EntityVectorLinkExp(baseModel):
         #########################################################
         ## compute the cosine distance between the two layers
 
+        # the are going to multiple entity links per document so we have the `_id` ivectors that represent how
+        # we need to reshuffle the inputs, this saves on computation
+
         # source body
-        self.source_aligned_l = self.document_output[self.x_document_id,:][self.x_link_id,:] #self.source_out[self.x_link_id, :]
+        self.source_aligned_l = self.document_output[self.x_document_id,:][self.x_link_id,:]
         # source context
         self.source_context_aligned_l = self.surface_output[self.x_link_id,:]
         # source surface words
         self.source_surface_words_aligned_l = self.surface_words_output[self.x_link_id,:]
 
-        # this uses scan internally, which means that it comes back into python code to run the loop.....fml
-#         self.dotted_vectors =  T.batched_dot(self.target_out, self.source_aligned_l)
-        # diag also does not support a C version.........
-        #self.dotted_vectors = T.dot(self.target_out, self.source_aligned_l.T).diagonal()
 
         def augNorm(v):
             return T.basic.pow(T.basic.pow(T.basic.abs_(v), 2).sum(axis=1) + .001, .5)
-
-#         self.res_l = self.dotted_vectors / (augNorm(self.target_out) * augNorm(self.source_aligned_l) + .001)
-
-#         self.res_cap = T.clip((T.tanh(self.res_l) + 1) / 2, .001, .999)
 
         def cosinsim(a, b):
             dotted = T.batched_dot(a, b)
             return dotted / (augNorm(a) * augNorm(b))
 
-        ##############################################
-        ## tensor product stuff
-
-#         def tensorP(a,b):
-#             res, _ = theano.scan(
-#                 fn=lambda x_vec, y_vec, x_norm, y_norm: T.concatenate(
-#                     [x_vec, y_vec,
-#                      T.outer(x_vec / x_norm, y_vec / y_norm).flatten()]
-#                 ),
-#                 outputs_info=None,
-#                 sequences=[a,b, augNorm(a), augNorm(b)],
-#                 non_sequences=None
-#             )
-#             return res
-
-
         def comparedVLayers(a, b):
             dv = cosinsim(a, b)
-            #dv = (a[:,0] + .001) * (b[:,0] + .001)
             return lasagne.layers.InputLayer(
                 (None,1),
                 input_var=dv.reshape((dv.shape[0], 1))
             )
-
-#         def comparedVLayers2(a,b):
-#             dv = theano.gradient.disconnected_grad(tensorP(a,b))  # just see how well this performs without learning this
-#             return lasagne.layers.InputLayer(
-#                 (None,self.dim_compared_vec ** 2 + self.dim_compared_vec*2 ),
-#                 input_var=dv
-#             )
-
-
-
-
-        ######################################################
-        ## indicator feature input
-
-#         self.indicator_feat_l = lasagne.layers.InputLayer(
-#             (None, self.num_indicator_features),
-#             input_var=self.x_indicator_features.astype(theano.config.floatX),
-#         )
 
         self.cosine_combined = lasagne.layers.concat(
             [
@@ -445,43 +326,44 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=lasagne.nonlinearities.linear,
         )
 
-#         self.cosine_weighted.W.get_value(borrow=True)[:] += 1
-
         self.cosine_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.cosine_weighted, (-1,)))
 
         self.all_params += lasagne.layers.get_all_params(self.cosine_weighted)
+
+
+        ######################################################
+        ## indicator feature input
+
 
         self.query_feat_l = lasagne.layers.InputLayer(
             (None,self.num_indicator_features),
             input_var=self.x_query_featurs,
         )
 
-        rank_feats = [f[0] for f in enumerate(featuresNames) if f[1].startswith('Rank=')]
+        #rank_feats = [f[0] for f in enumerate(featuresNames) if f[1].startswith('Rank=')]
 
         self.denotation_join_feat_l = lasagne.layers.InputLayer(
             (None,self.num_indicator_features),
             input_var=self.x_denotaiton_features,#[:, rank_feats],
         )
 
-        self.query_layer_l = lasagne.layers.DenseLayer(
-            self.query_feat_l,
-            name='query_lin',
-            num_units=1,
-            nonlinearity=lasagne.nonlinearities.linear,
-        )
+        ## the query and denotation features are now combined when inputed into the same denotation vector
 
-#         self.query_layer_l.b.get_value(borrow=True)[:] += 1
+        # self.query_layer_l = lasagne.layers.DenseLayer(
+        #     self.query_feat_l,
+        #     name='query_lin',
+        #     num_units=1,
+        #     nonlinearity=lasagne.nonlinearities.linear,
+        # )
 
-        self.query_output = lasagne.layers.get_output(
-            lasagne.layers.reshape(self.query_layer_l, (-1,))
-        )
+        # self.query_output = lasagne.layers.get_output(
+        #     lasagne.layers.reshape(self.query_layer_l, (-1,))
+        # )
 
-#         self.all_params = []
+        # self.all_params += lasagne.layers.get_all_params(self.query_layer_l)
 
-#         self.all_params += lasagne.layers.get_all_params(self.query_layer_l)
-
-        self.aligned_queries = self.query_output[self.x_query_link_id]
+        # self.aligned_queries = self.query_output[self.x_query_link_id]
 
         self.aligned_cosine = self.cosine_output[self.x_target_link_id]
 
@@ -493,8 +375,6 @@ class EntityVectorLinkExp(baseModel):
             W=self.query_layer_l.W,
         )
 
-#         self.denotation_layer_l.b.get_value(borrow=True)[:] += 1
-
         self.denotation_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.denotation_layer_l, (-1,)))
 
@@ -503,33 +383,17 @@ class EntityVectorLinkExp(baseModel):
         ###########################
         ## multiply the two parts of the join scores
 
-        #  self.aligned_cosine
         self.unmerged_scores =  (
             ( #(self.aligned_queries) +
             (self.denotation_output))
             + self.aligned_cosine
-            # *
-#             (1 - self.x_denotaiton_features[:, self.impossible_query])
         )
 
-        # this should be the fastest way to compute this
-        # however it is creating matrices too large and isn't able to allocate enough memory or something
-
-#         def mergingSelector(indx, outputs):
-#             return T.set_subtensor(outputs[indx[0], T.arange(indx[1],indx[2])], 1)
-
-#         merging_seq = T.concatenate([
-#                 T.arange(self.x_denotation_ranges.shape[0]).reshape((self.x_denotation_ranges.shape[0], 1)),
-#                 self.x_denotation_ranges,
-#         ], axis=1)
-
-#         self.merging_matrix, _ = theano.scan(
-#             mergingSelector,
-#             outputs_info=T.zeros((self.x_denotation_ranges.shape[0], self.denotation_output.shape[0])),
-#             sequences=merging_seq,
-#         )
-
-#         self.merged_scores = T.dot(self.merging_matrix, self.unmerged_scores)
+        #############################################
+        ## normalizing the scores and recombining
+        ## the output if there were multiple entries
+        ## for the same target document
+        #############################################
 
 
         def sloppyMathLogSum(vals):
@@ -537,70 +401,13 @@ class EntityVectorLinkExp(baseModel):
             return T.log(T.exp(vals - m).sum()) + m
 
         def mergingSum(indx, unmerged):
-            return sloppyMathLogSum(unmerged[T.arange(indx[0], indx[1])]) #.mean()
+            return sloppyMathLogSum(unmerged[T.arange(indx[0], indx[1])])
 
         self.merged_scores, _ = theano.scan(
             mergingSum,
             sequences=[self.x_denotation_ranges],
             non_sequences=[self.unmerged_scores]
         )
-
-#         self.merged_scores = self.cosine_output
-
-        # prevents the softmax from blowing up
-#         self.merged_rescaled = 10 * self.merged_scores / theano.gradient.disconnected_grad(abs(self.merged_scores).max())
-
-
-        #############################
-        ## Linear features combined
-        #############################
-
-
-#         self.linear_features_combined = lasagne.layers.concat(
-#             [
-
-#                comparedVLayers(self.target_out, self.source_aligned_l),
-#                comparedVLayers(self.target_out, self.source_context_aligned_l),
-#                comparedVLayers(self.target_out, self.source_surface_words_aligned_l),
-
-#                comparedVLayers(self.target_title_out, self.source_aligned_l),
-#                comparedVLayers(self.target_title_out, self.source_context_aligned_l),
-#                comparedVLayers(self.target_title_out, self.source_surface_words_aligned_l),
-
-
-# #                 comparedVLayers(self.target_embedding_out, self.source_aligned_l),
-# #                 comparedVLayers(self.target_embedding_out, self.source_context_aligned_l),
-# #                 comparedVLayers(self.target_embedding_out, self.source_surface_words_aligned_l),
-
-#             lasagne.layers.reshape(self.target_matched_surface_input_l, ([0],1)),
-#             self.target_matched_counts_input_l,
-#              self.indicator_feat_l
-#             ],
-#             axis=1
-#         )
-
-#         self.linear_features_dens_l = lasagne.layers.DenseLayer(
-#             self.linear_features_combined,
-#             nonlinearity=lasagne.nonlinearities.linear,  # use tanh so that too large of values don't cause the softmax issues
-#             num_units=1,
-#             name='linear_final_l',
-#             W=lasagne.init.Normal(mean=0.0),
-#         )
-
-#         self.linear_features_dens_l.W.get_value(borrow=True)[0:9] += 1.0  # set the word vecs positive
-# #         lin_feat_W = self.linear_features_dens_l.W.get_value(borrow=True)
-# #         lin_feat_add_one = np.eye(self.dim_compared_vec).reshape(self.dim_compared_vec**2, 1)
-# #         lin_feat_W[self.dim_compared_vec*2                           :self.dim_compared_vec*2+  self.dim_compared_vec**2] += lin_feat_add_one
-# #         lin_feat_W[self.dim_compared_vec*4+  self.dim_compared_vec**2:self.dim_compared_vec*4+2*self.dim_compared_vec**2] += lin_feat_add_one
-# #         lin_feat_W[self.dim_compared_vec*6+2*self.dim_compared_vec**2:self.dim_compared_vec*6+3*self.dim_compared_vec**2] += lin_feat_add_one
-
-#         self.linear_output = lasagne.layers.get_output(
-#             lasagne.layers.reshape(self.linear_features_dens_l, ([0],))
-#         )
-
-#         # rescaled the output so we don't crash the softmax layer with a value that is too large
-#         # just a hack
-#         self.linear_output_rescaled = 10 * self.linear_output / theano.gradient.disconnected_grad(abs(self.linear_output).max())
 
         ########################################
         ## true output values
@@ -609,7 +416,6 @@ class EntityVectorLinkExp(baseModel):
         self.unscaled_output = self.merged_scores
 
         def scaleRes(indx, outputs, res):
-            #print 'scaleRes'
             ran = T.arange(indx[0], indx[1])
             s = sloppyMathLogSum(res[ran])
             return T.set_subtensor(outputs[ran], res[ran] - s)
@@ -621,55 +427,11 @@ class EntityVectorLinkExp(baseModel):
             outputs_info=T.zeros((self.unscaled_output.shape[0],))
         )
 
-#         self.scaled_scores = scaled_output_grp.flatten()
-
-
-#         self.all_params = []
-        # rescale the scores to prevent softmax from blowing up
-        #self.true_output = T.zeros((self.unscaled_output.shape[0],))
         self.true_output =  self.scaled_scores[-1]
-        #self.merged_scores #10 * self.unscaled_output / theano.gradient.disconnected_grad(abs(self.unscaled_output).max())#self.cosine_output # self.merged_rescaled #self.linear_output_rescaled
 
-
-
-#         self.res_l = self.dotted_vectors / ((self.target_out.norm(1, axis=1) + .001) *
-#                                             (self.source_aligned_l.norm(1, axis=1) + .001))
-
-
-        #self.golds = self.res_cap[self.y_answer]
-
-#         def maxOverRange(indx):
-#             #return T.max(self.res_cap[T.arange(indx[0],indx[1])]) - self.res_cap[indx[2]]
-#             #return -( self.res_l[indx[2]] - T.log(T.exp(self.res_l[T.arange(indx[0],indx[1])]).sum()) )
-#             return -( self.res_l[indx[2]] - self.res_l[indx[0]])
-
-#         # build a tensor to make a matrix with one set on each dimention
-#         self.grouped, grouped_update = theano.scan(maxOverRange, sequences=self.y_grouping)
-
-###########
-#         def setSubSelector(indx, outputs):
-#             return T.set_subtensor(outputs[T.arange(indx[0], indx[1]), indx[3]], 1)
-
-#         num_target_samples = self.true_output.shape[0]
-
-#         select_seq = T.concatenate([
-#             self.y_grouping,
-#             T.arange(self.y_grouping.shape[0]).reshape((self.y_grouping.shape[0], 1))
-#         ], axis=1)
-
-#         self.selecting_matrix, _ = theano.scan(
-#             setSubSelector,
-#             outputs_info=T.zeros((num_target_samples, self.y_grouping.shape[0])), #num_target_samples)),
-#             #n_steps=self.y_grouping.shape[0]
-#             sequences=select_seq,
-#         )
-
-#########
-
-
-#         self.groupped_elems = T.dot(self.selecting_matrix[-1].T,
-#                                    T.exp(self.true_output))
-#         self.groupped_res = T.log(self.groupped_elems)
+        ############################
+        ## compute the loss
+        ############################
 
         def lossSum(indx, res):
             return sloppyMathLogSum(res[T.arange(indx[0], indx[1])])
@@ -682,7 +444,8 @@ class EntityVectorLinkExp(baseModel):
 
         def selectGolds(indx, res, golds):
             r = T.arange(indx[0], indx[1])
-            # the gold value should simply come from the input
+            # fix some issue with theano?
+            # the gold value should simply comes from the input
             # so there is no good reason to have to disconnect the graident here
             gs = theano.gradient.disconnected_grad(golds[r])
             vals = gs * res[r] + (1 - gs) * -1000000  # approx 0
@@ -694,53 +457,22 @@ class EntityVectorLinkExp(baseModel):
             non_sequences=[self.true_output, self.y_isgold],
         )
 
-        self.loss_vec = self.groupped_res - self.gold_res #self.true_output[self.y_grouping[:,2]]
+        self.loss_vec = self.groupped_res - self.gold_res
 
-        #if self.enable_boosting:
-        #    self.loss_scalar = T.dot(self.y_boosted, self.loss_vec)
-        #else:
         self.loss_scalar = self.loss_vec.sum()
 
-#         self.all_params = (
-#             lasagne.layers.get_all_params(self.document_simple_sum_l) +
-#             lasagne.layers.get_all_params(self.surface_context_pool1_l) +
-#             lasagne.layers.get_all_params(self.surface_pool1_l) +
-#             lasagne.layers.get_all_params(self.target_body_simple_sum_l) +
-#             lasagne.layers.get_all_params(self.target_words_pool1_l) +
-#             lasagne.layers.get_all_params(self.linear_features_dens_l)
-#         )
-
-#         self.regularization = (self.linear_features_dens_l.W ** 2).sum() / 400
-
-        # weight the positive samples more since there are fewer of them,
-        # freaking hack
-        #self.loss_vec = -(10 * self.y_score * T.log(self.res_cap) + (1.0 - self.y_score) * T.log(1.0 - self.res_cap))
-
-        #self.loss_vec = T.nnet.binary_crossentropy(self.res_cap, self.y_score)
-
-        #self.loss_vec = T.exp(T.max(self.res_cap - self.res_cap[self.y_answer] + .1, 0)) - 1  # TODO: maybe have some squared term here or something?
-
-        # this one works reasonably well
-        #self.loss_vec = - T.log((T.clip(self.res_cap[self.y_answer] - self.res_cap, -1.0, 0.4) + 1.0) / 1.5)
-
-        #self.loss_vec = self.grouped
-
-        #self.loss_vec = - T.log((T.clip(self.res_l[self.y_answer] - self.res_l, -40.0, 10.0) + 40.0) / 51.0)
-        #self.loss_vec = T.max(self.res_l[self.y_answer] - self.res_l + .1, 0)
-
         self.updates = lasagne.updates.adadelta(
-            self.loss_scalar / self.loss_vec.shape[0] , #+ self.regularization,
+            self.loss_scalar / self.loss_vec.shape[0] ,
             self.all_params)
 
         self.func_inputs = [
             self.x_document_input,
             self.x_surface_text_input, self.x_surface_context_input, self.x_document_id,
             self.x_target_input, self.x_matches_surface, self.x_matches_counts, self.x_link_id,
-            self.x_target_words, self.x_target_document_words, #self.x_indicator_features,
+            self.x_target_words, self.x_target_document_words,
             self.x_denotaiton_features, self.x_query_featurs, self.x_query_link_id, self.x_denotation_ranges,
             self.x_target_link_id,
-            #self.y_answer,
-            self.y_grouping, #self.y_boosted,
+            self.y_grouping,
             self.y_isgold,
         ]
 
@@ -752,9 +484,6 @@ class EntityVectorLinkExp(baseModel):
             #self.res_l,
         ]
 
-        ################################################################3
-        ## TODO: need to return the actual output layer instead of the res_cap, since that is something else now
-
         self.train_func = theano.function(
             self.func_inputs,
             self.func_outputs,
@@ -765,6 +494,12 @@ class EntityVectorLinkExp(baseModel):
         self.test_func = theano.function(
             self.func_inputs,
             self.func_outputs,
+            on_unused_input='ignore',
+        )
+
+        self.find_conv_active_func = theano.function(
+            self.func_inputs,
+            self.all_conv_results,
             on_unused_input='ignore',
         )
 
@@ -794,15 +529,16 @@ class EntityVectorLinkExp(baseModel):
 
         self.failed_match = []
 
-    def compute_batch(self, isTraining=True, useTrainingFunc=True):
+    def compute_batch(self, isTraining=True, useTrainingFunc=True, batch_run_func=None):
         if isTraining and useTrainingFunc:
             func = self.train_func
         else:
             func = self.test_func
+        if batch_run_func is None:
+            batch_run_func = self.run_batch
         self.reset_accums()
         self.total_links = 0
         self.total_loss = 0.0
-        #self.total_boosted_loss = 0.0
 
         get_words = re.compile('[^a-zA-Z0-9 ]')
         get_link = re.compile('.*?\[(.*?)\].*?')
@@ -964,13 +700,14 @@ class EntityVectorLinkExp(baseModel):
                 self.learning_targets += target_learings
             if len(self.current_target_id) > self.batch_size:
 #                 return
-                self.run_batch(func)
+                batch_run_func(func)
                 sys.stderr.write('%i\r'%self.total_links)
                 if self.total_links > self.num_training_items:
                     return self.total_loss / self.total_links, #self.total_boosted_loss / self.total_links
 
         if len(self.current_target_id) > 0:
-            self.run_batch(func)
+            batch_run_func(func)
+            #self.run_batch(func)
 
         return self.total_loss / self.total_links, #self.total_boosted_loss / self.total_links
 
@@ -998,16 +735,27 @@ class EntityVectorLinkExp(baseModel):
                 l[0]['vals'][ l[1] ][0] = float(res_vec[i]), 0#float(nn_outs[i])
             if l[0] not in learned_groups:
                 learned_groups.append(l[0])
-#         for group in learned_groups:
-#             if group['gold']:
-#                 correct = max(group['vals']) == group['vals'].get(group['gold'])
-#                 group['boosted'] *= .4 if correct else 2.0
-#                 if self.enable_cap_boosting:
-#                     if group['boosted'] > 10:
-#                         group['boosted'] = 10.0
-#                     elif group['boosted'] < 0.1:
-#                         group['boosted'] = 0.1
         self.reset_accums()
+
+    def run_batch_max_activate(self, _):
+        res = self.find_conv_active_func(
+            self.current_documents,
+            self.current_surface_link, self.current_surface_context, self.current_link_id,
+            self.current_target_input, self.current_target_matches_surface, self.current_surface_target_counts, self.current_target_id,
+            self.current_target_words, self.current_target_body_words,
+            self.current_denotations_feats_indicators, self.current_queries, self.current_denotations_related_query, self.current_denotations_range,
+            self.current_denotation_targets_linked,
+            self.current_learning_groups,
+            self.current_target_is_gold,
+        )
+        self.check_params()
+        self.total_links += len(self.current_link_id)
+        self.total_loss += 0
+
+
+
+        self.reset_accums()
+
 
     def check_params(self):
         if any([np.isnan(v.get_value(borrow=True)).any() for v in self.all_params]):

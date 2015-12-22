@@ -1,3 +1,7 @@
+#!/usr/bin/env python2
+
+# the main file for running
+
 import argparse
 import json
 import csv
@@ -98,6 +102,7 @@ def argsp():
     aparser.add_argument('--raw_output', help='h5py file that represents raw information about this run', required=True)
     aparser.add_argument('--csv_output', help='csv results from this run', required=True)
     aparser.add_argument('--exp_model', help='the file to load for the experiment', default='exp_multi_conv_cosim')
+    aparser.add_argument('--load_model_weights', help='the h5py file from a previous run, will start from these learned weights')
 
     return aparser
 
@@ -113,6 +118,12 @@ def save_results():
         csv_f.writerow(['Log:'])
         csv_f.writerows(debug_log)
         h5_f['debug'] = pickle.dumps(debug_log)
+
+    if queries_exp is not None:
+        params = h5_f.create_group('params')
+        for p in set(queries_exp.all_params):
+            params[str(p)] = p.get_value(borrow=True)
+        h5_f['params_featureNames'] = featureNames
 
 
 def potentially_rename_file(fname):
@@ -139,6 +150,10 @@ def main():
     h5_f = h5py.File(potentially_rename_file(args.raw_output), 'w')
     h5_running_info = h5_f.create_group('meta_info')
     h5_running_info['arguments'] = sys.argv
+
+    if args.load_model_weights is not None:
+        # load the model weights etc
+        raise NotImplemented()
 
     atexit.register(save_results)
 

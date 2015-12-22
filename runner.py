@@ -204,7 +204,29 @@ def main():
     queries_exp.batch_size = args.batch_size
 
     # run the model
-    results_log.append(('todo',))
+    results_log.append(('Iteration', 'KB F1', 'KB Prec', 'KB Rec', 'NIL F1', 'NIL Prec', 'NIL Rec', 'results'))
+    def do_eval(i):
+        # run the testing step
+        tres = ('Testing step', queries_exp.compute_batch(False))
+        print tres
+        debug_log.append(tres)
+        tstate = ('testing state', evalCurrentState(queries, False, queries_exp.num_training_items))
+        print tstate
+        debug_log.append(tstate)
+        f1_res, f1_str = evalCurrentStateFahrni(queries, False, queries_exp.num_training_items)
+        debug_log.append([str(dict(f1_res)), f1_str])
+        kb_prec = float(f1_res['cKB']) / (f1_res['cKB'] + f1_res['wKB_KB'] + f1_res['wNIL_KB'])
+        kb_rec = float(f1_res['cKB']) / (f1_res['cKB'] + f1_res['wKB_KB'] + f1_res['wKB_NIL'])
+        nil_prec = float(f1_res['cNIL']) / ((f1_res['cNIL'] + f1_res['wKB_NIL']) or 1)
+        nil_rec = float(f1_res['cNIL']) / ((f1_res['cNIL'] + f1_res['wNIL_KB']) or 1)
+
+        results_log.append((i,
+                            2 * kb_prec * kb_rec / (kb_prec + kb_rec), kb_prec, kb_rec,
+                            2 * nil_prec * nil_rec / ((nil_prec + nil_rec) or 1), nil_prec, nil_rec,
+                            f1_str,
+        ))
+
+
     for i in xrange(args.num_iter):
         # run the training step
         print 'Training step', i
@@ -214,15 +236,9 @@ def main():
         tstate = ('training state', evalCurrentState(queries, True, queries_exp.num_training_items))
         print tstate
         debug_log.append(tstate)
-        # run the testing step
-        tres = ('Testing step', queries_exp.compute_batch(False))
-        print tres
-        debug_log.append(tres)
-        tstate = ('testing state', evalCurrentState(queries, False, queries_exp.num_training_items))
-        print tstate
-        debug_log.append(tstate)
-        f1_res = evalCurrentStateFahrni(queries, False, queries_exp.num_training_items)
-        debug_log.append([str(dict(f1_res[0])), f1_res[1]])
+        do_eval(i)
+    if args.num_iter == 0:
+        do_eval(-1)
 
     queries_exp.find_max_convs()
 

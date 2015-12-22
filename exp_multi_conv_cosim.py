@@ -54,6 +54,7 @@ class EntityVectorLinkExp(baseModel):
 
         self.all_conv_results = []
         self.all_conv_pool_results = []
+        self.all_conv_names = []
 
         self.x_document_input = T.imatrix('x_doc')  # words from the source document
 
@@ -106,12 +107,17 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=simpleConvNonLin,
         )
 
+        self.all_conv_names.append('document_conv')
+        self.all_conv_results.append(lasagne.layer.get_output(self.document_simple_conv1_l))
+
         self.document_simple_sum_l = lasagne.layers.Pool2DLayer(
             self.document_simple_conv1_l,
             name='document_simple_pool',
             pool_size=(self.document_length - 2, 1),
             mode='sum',
         )
+
+        self.all_conv_pool_results.append(lasagne.layer.get_output(self.document_simple_sum_l))
 
         self.document_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.document_simple_sum_l, ([0],-1)))
@@ -141,12 +147,17 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=simpleConvNonLin,
         )
 
+        self.all_conv_names.append('surface_context_conv')
+        self.all_conv_results.append(lasagne.layer.get_output(self.surface_context_conv1_l))
+
         self.surface_context_pool1_l = lasagne.layers.Pool2DLayer(
             self.surface_context_conv1_l,
             name='surface_cxt_pool1',
             pool_size=(self.sentence_length - self.num_words_to_use_conv, 1),
             mode='sum',   # WAS 'MAX' FOR SOME REASON
         )
+
+        self.all_conv_pool_results.append(lasagne.layer.get_output(self.surface_context_pool1_l))
 
         self.surface_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.surface_context_pool1_l, ([0], -1))
@@ -173,12 +184,17 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=simpleConvNonLin,
         )
 
+        self.all_conv_names.append('surface_conv')
+        self.all_conv_results.append(lasagne.lasagne.get_output(self.surface_conv1_l))
+
         self.surface_pool1_l = lasagne.layers.Pool2DLayer(
             self.surface_conv1_l,
             name='surface_pool1',
             pool_size=(self.sentence_length_short - self.num_words_to_use_conv, 1),
             mode='sum',
         )
+
+        self.all_conv_pool_results.append(lasagne.layer.get_output(self.surface_pool1_l))
 
         self.surface_words_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.surface_pool1_l, ([0], -1))
@@ -190,8 +206,8 @@ class EntityVectorLinkExp(baseModel):
         ###################################################
         ## dealing with the target side
 
-        matched_surface_reshaped = self.x_matches_surface.reshape(
-            (self.x_matches_surface.shape[0], 1, 1, 1)).astype(theano.config.floatX)
+        # matched_surface_reshaped = self.x_matches_surface.reshape(
+        #     (self.x_matches_surface.shape[0], 1, 1, 1)).astype(theano.config.floatX)
 
         self.target_input_l = lasagne.layers.InputLayer(
             (None,),
@@ -201,15 +217,16 @@ class EntityVectorLinkExp(baseModel):
         #################################
         ## target indicators features
 
-        self.target_matched_surface_input_l = lasagne.layers.InputLayer(
-            (None,1,1,1),
-            input_var=matched_surface_reshaped,
-        )
+        ## these have been replaced with the indicatores as provided by the scala system
+        # self.target_matched_surface_input_l = lasagne.layers.InputLayer(
+        #     (None,1,1,1),
+        #     input_var=matched_surface_reshaped,
+        # )
 
-        self.target_matched_counts_input_l = lasagne.layers.InputLayer(
-            (None,5),
-            input_var=self.x_matches_counts.astype(theano.config.floatX),
-        )
+        # self.target_matched_counts_input_l = lasagne.layers.InputLayer(
+        #     (None,5),
+        #     input_var=self.x_matches_counts.astype(theano.config.floatX),
+        # )
 
         # words from the title of the target
         self.target_words_input_l = lasagne.layers.InputLayer(
@@ -231,12 +248,17 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=simpleConvNonLin,
         )
 
+        self.all_conv_names.append('target_title_conv')
+        self.all_conv_results.append(lasagne.layer.get_output(self.target_words_conv1_l))
+
         self.target_words_pool1_l = lasagne.layers.Pool2DLayer(
             self.target_words_conv1_l,
             name='target_wrds_pool1',
             pool_size=(self.sentence_length_short - self.num_words_to_use_conv, 1),
             mode='sum',
         )
+
+        self.all_conv_pool_results.append(lasagne.layer.get_output(self.target_words_pool1_l))
 
         self.target_title_out = lasagne.layers.get_output(
             lasagne.layers.reshape(self.target_words_pool1_l, ([0],-1))
@@ -265,12 +287,17 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=simpleConvNonLin,
         )
 
+        self.all_conv_names.append('target_body_conv')
+        self.all_conv_results.append(lasagne.lasagne.get_output(self.target_body_simple_conv1_l))
+
         self.target_body_simple_sum_l = lasagne.layers.Pool2DLayer(
             self.target_body_simple_conv1_l,
             name='target_body_simple_sum',
             pool_size=(self.sentence_length - 2, 1),
             mode='sum',
         )
+
+        self.all_conv_pool_results.append(lasagne.layer.get_output(self.target_body_simple_sum_l))
 
         self.target_out = lasagne.layers.get_output(
             lasagne.layers.reshape(self.target_body_simple_sum_l, ([0],-1)))
@@ -372,7 +399,7 @@ class EntityVectorLinkExp(baseModel):
             name='denotation_lin',
             num_units=1,
             nonlinearity=lasagne.nonlinearities.linear,
-            W=self.query_layer_l.W,
+            #W=self.query_layer_l.W,
         )
 
         self.denotation_output = lasagne.layers.get_output(
@@ -752,9 +779,67 @@ class EntityVectorLinkExp(baseModel):
         self.total_links += len(self.current_link_id)
         self.total_loss += 0
 
+        # need to match with the conv names/results
+        conv_inputs = [
+            # shape: (document index, number of words)
+            np.array(self.current_documents),
+            np.array(self.current_surface_context),
+            np.array(self.current_surface_link),
+            np.array(self.current_target_words),
+            np.array(self.current_target_body_words),
+        ]
 
+        # res shape: (document index, num filters, output rows, output columns [word vectors, should be 1])
+
+        for i in xrange(len(res)):
+            conv_len = conv_inputs[i].shape[1] - res[i].shape[2]
+            for dim in xrange(self.dim_compared_vec):
+                curren_min = self.conv_max[i][dim][0][0]
+                higher_p = res[i][:, dim, :, 0] > current_min
+                if higher_p.any():
+                    higher_where = np.where(higher_where)
+                    higher_vals = res[i][higher_where[0], dim, higher_where[1]]
+                    current_words = set(w[0] for w in self.conv_max[i][dim])
+                    higher_words = [
+                        # np won't do this selecting in one shot
+                        conv_inputs[i][higher_where[0][w], higher_where[1][w]:(higher_where[1][w]+conv_len)]
+                        for w in xrange(len(higher_where[0]))
+                    ]
+                    #higher_words = conv_inputs[i][higher_where[0], higher_where[1]:(higher_where[1]+conv_len)]
+                    itm_arr = self.conv_max[i][dim]
+                    for x in xrange(len(higher_vals)):
+                        hv = higher_vals[x]
+                        if hv > itm_arr[0][0]:
+                            # this is higher then the current min value
+                            words = tuple(higher_words[x])
+                            if words not in current_words:
+                                # we should remove the min element
+                                itm_arr[0] = (hv, words)
+                                itm_arr.sort()
 
         self.reset_accums()
+
+
+    def find_max_convs(self, num_per_activation=5):
+        assert len(self.all_conv_names) == 5
+        assert len(self.all_conv_results) == 5
+
+        per_act = [(0, ())] * num_per_activation
+        per_conv = [per_act] * self.dim_compared_vec
+        self.conv_max = [per_conv] * len(self.all_conv_names)
+
+        self.compute_batch(True, batch_run_func=self.run_batch_max_activate)
+        self.compute_batch(False, batch_run_func=self.run_batch_max_activate)
+
+        # convert the second part of the arrays to strings of words
+
+        for ci in xrange(len(self.all_conv_names)):
+            for di in xrange(self.dim_compared_vec):
+                for ai in xrange(num_per_activation):
+                    a = self.conv_max[ci][di][ai]
+                    self.conv_max[ci][di][ai] = (a[0], ' '.join([self.wordvec.get_word(w) for w in a[1]]))
+
+        return self.conv_max
 
 
     def check_params(self):

@@ -209,6 +209,8 @@ def main():
         f1_res = evalCurrentStateFahrni(queries, False, queries_exp.num_training_items)
         debug_log.append([str(dict(f1_res[0])), f1_res[1]])
 
+    queries_exp.find_max_convs()
+
 
 
 

@@ -112,11 +112,13 @@ def save_results():
     if len(results_log) != 0:
         csv_f.writerow(['Results:'])
         csv_f.writerows(results_log)
+        csv_f.writerow([])
         h5_f['results'] = results_log
 
     if len(debug_log) != 0:
         csv_f.writerow(['Log:'])
         csv_f.writerows(debug_log)
+        csv_f.writerow([])
         h5_f['debug'] = pickle.dumps(debug_log)
 
     if queries_exp is not None:
@@ -124,6 +126,19 @@ def save_results():
         for p in set(queries_exp.all_params):
             params[str(p)] = p.get_value(borrow=True)
         h5_f['params_featureNames'] = featureNames
+
+        # the attr might not be set if it did not get this far
+        if getattr(queries_exp, 'conv_max', None):
+            csv_f.writerow(['Conv max items:'])
+            h5_f['conv_max'] = pickle.dumps(queries_exp.conv_max)
+            cv = queries_exp.conv_max
+            max_dim = max(len(cv[i]) for i in xrange(len(cv)))
+            for di in xrange(max_dim):
+                for ci in xrange(len(cv)):
+                    if len(cv[ci]) > di:
+                        # this item has a dimention at least this big
+                        for ai in xrange(len(cv[ci][di]), 0, -1):
+                            csv_f.writerow([queries_exp.all_conv_names[ci], di, cv[ci][di][ai][0], cv[ci][di][ai][1]])
 
 
 def potentially_rename_file(fname):

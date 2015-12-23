@@ -82,7 +82,16 @@ def loadQueries(fname):
                                 if g:
                                     new_ind.append(g)
                             new_inds.append(new_ind)
-                        v2['vals'][k] = new_inds
+                        v2['vals'][k] = [0, new_inds]
+                    new_qvs = []
+                    for a in v2['query_vals']:
+                        nqv = []
+                        for a2 in a:
+                            g = feat_map.get(a2)
+                            if g:
+                                nqv.append(g)
+                        new_qvs.append(nqv)
+                    v2['query_vals'] = new_qvs
     for q,v in queries.items():
         for v2 in v.values():
             gi = set(g.replace('_', ' ') for g in v2['gold']) | set(v2['gold'])

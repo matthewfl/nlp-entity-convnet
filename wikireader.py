@@ -1,7 +1,7 @@
 import re
 import json
 from collections import defaultdict
-import bz2
+#import bz2
 
 #import regex
 
@@ -64,7 +64,13 @@ class WikipediaReader(object):
 
     def open_f(self):
         if self.wikidump_fname.endswith('.bz2'):
-            return bz2.BZ2File(self.wikidump_fname, 'r', 10 * 1024 * 1024)
+            import subprocess
+            proc = subprocess.Popen('cat {} | bzip2 -d'.format(self.wikidump_fname),
+                                    shell=True,
+                                    stdout=subprocess.PIPE
+                                    )
+            return proc.stdout
+            #return bz2.BZ2File(self.wikidump_fname, 'r', 10 * 1024 * 1024)
         return open(self.wikidump_fname)
 
     @classmethod

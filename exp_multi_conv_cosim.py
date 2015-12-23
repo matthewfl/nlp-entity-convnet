@@ -102,7 +102,7 @@ class EntityVectorLinkExp(baseModel):
         self.document_simple_conv1_l = lasagne.layers.Conv2DLayer(
             self.document_embedding_l,
             num_filters=self.dim_compared_vec,
-            filter_size=(2, self.wordvecs.vector_size),
+            filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
             name='document_simple_conv',
             nonlinearity=simpleConvNonLin,
         )
@@ -113,7 +113,7 @@ class EntityVectorLinkExp(baseModel):
         self.document_simple_sum_l = lasagne.layers.Pool2DLayer(
             self.document_simple_conv1_l,
             name='document_simple_pool',
-            pool_size=(self.document_length - 2, 1),
+            pool_size=(self.document_length - self.num_words_to_use_conv, 1),
             mode='sum',
         )
 
@@ -282,7 +282,7 @@ class EntityVectorLinkExp(baseModel):
         self.target_body_simple_conv1_l = lasagne.layers.Conv2DLayer(
             self.target_body_words_embedding_l,
             name='target_body_simple_conv',
-            filter_size=(2, self.wordvecs.vector_size),
+            filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
             num_filters=self.dim_compared_vec,
             nonlinearity=simpleConvNonLin,
         )
@@ -293,7 +293,7 @@ class EntityVectorLinkExp(baseModel):
         self.target_body_simple_sum_l = lasagne.layers.Pool2DLayer(
             self.target_body_simple_conv1_l,
             name='target_body_simple_sum',
-            pool_size=(self.sentence_length - 2, 1),
+            pool_size=(self.sentence_length - self.num_words_to_use_conv, 1),
             mode='sum',
         )
 
@@ -821,7 +821,7 @@ class EntityVectorLinkExp(baseModel):
         self.reset_accums()
 
 
-    def find_max_convs(self, num_per_activation=5):
+    def find_max_convs(self, num_per_activation=10):
         assert len(self.all_conv_names) == 5
         assert len(self.all_conv_results) == 5
 

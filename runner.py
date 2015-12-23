@@ -58,7 +58,31 @@ def loadQueries(fname):
     with open(fname) as f:
         q = json.load(f)
         queries = q['queries']
-        featureNames = q['featIndex']
+        if featureNames is None:
+            featureNames = q['featIndex']
+        else:
+            # then we are loading these queries on top of a model that is already loaded
+            # so we want to realign these new features with these items
+            cur_feats = q['featIndex']
+            reverse_map = dict(
+                (featureNames[n], n) for n in xrange(len(featureNames))
+            )
+            feat_map = dict(
+                (n, reverse_map[cur_feats[n]]) for n in xrange(len(cur_feats)) if cur_feats[n] in reverse_map
+            )
+            for qu,v in queries.iteritems():
+                for v2 in v.values():
+                    for k in v2['vals']:
+                        kv = v2['vals'][k][1]
+                        new_inds = []
+                        for a in kv:
+                            new_ind = []
+                            for ai in a:
+                                g = feat_map.get(ai)
+                                if g:
+                                    new_ind.append(g)
+                            new_inds.append(new_ind)
+                        v2['vals'][k] = new_inds
     for q,v in queries.items():
         for v2 in v.values():
             gi = set(g.replace('_', ' ') for g in v2['gold']) | set(v2['gold'])
@@ -166,9 +190,13 @@ def main():
     h5_running_info = h5_f.create_group('meta_info')
     h5_running_info['arguments'] = sys.argv
 
+    h5_prev_f = None
+
     if args.load_model_weights is not None:
         # load the model weights etc
-        raise NotImplemented()
+        h5_prev_f = h5py.File(args.load_model_weights, 'r')
+        global featureNames
+        featureNames = pickle.loads(h5_prev_f['params_featureNames'].value)
 
     atexit.register(save_results)
 
@@ -180,7 +208,7 @@ def main():
     h5_running_info['total_possible'] = total_num_possible
     h5_running_info['testing_possible'] = testing_num_possible
     csv_f.writerow(['Total queries possible', total_num_possible])
-    csv_f.writerow(['Testing queries possible', total_num_possible])
+    csv_f.writerow(['Testing queries possible', testing_num_possible])
     print 'Total queries possible: {}, Testing queries possible: {}'.format(total_num_possible, testing_num_possible)
 
     # load the word vectors and redirects
@@ -198,6 +226,12 @@ def main():
     print 'Loading model'
     global queries_exp
     queries_exp = __import__(args.exp_model).queries_exp
+
+    if h5_prev_f:
+        # load the weights for the model
+        params = h5_prev_f['params']
+        for p in set(queries_exp.all_params):
+            p.get_value(borrow=True)[:] = params[str(p)].value
 
     queries_exp.num_training_items = 50000000  # max number of items 50,000,000
 

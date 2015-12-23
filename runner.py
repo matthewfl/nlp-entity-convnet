@@ -161,7 +161,7 @@ def save_results():
                 for ci in xrange(len(cv)):
                     if len(cv[ci]) > di:
                         # this item has a dimention at least this big
-                        for ai in xrange(len(cv[ci][di]), 0, -1):
+                        for ai in xrange(len(cv[ci][di])-1, -1, -1):
                             csv_f.writerow([queries_exp.all_conv_names[ci], di, float(cv[ci][di][ai][0]), cv[ci][di][ai][1]])
 
 

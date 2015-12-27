@@ -32,6 +32,7 @@ h5_f = None
 baseModel = None
 
 # the ml model
+disable_convs = []
 queries_exp = None
 
 debug_log = []
@@ -136,6 +137,7 @@ def argsp():
     aparser.add_argument('--csv_output', help='csv results from this run', required=True)
     aparser.add_argument('--exp_model', help='the file to load for the experiment', default='exp_multi_conv_cosim')
     aparser.add_argument('--load_model_weights', help='the h5py file from a previous run, will start from these learned weights')
+    aparser.add_argument('--disable_conv', type=int, nargs='+', help='list of convs to disable')
 
     return aparser
 
@@ -233,7 +235,8 @@ def main():
     baseModel = PreProcessedQueries(args.wiki_dump, wordvectors, queries, wordvectors.redirects, surface_counts)
 
     print 'Loading model'
-    global queries_exp
+    global queries_exp, disable_convs
+    disable_convs = args.disable_conv
     queries_exp = __import__(args.exp_model).queries_exp
 
     if h5_prev_f:

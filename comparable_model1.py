@@ -88,82 +88,82 @@ class EntityVectorLinkExp(baseModel):
 
         simpleConvNonLin = augRectify
 
-        self.document_l = lasagne.layers.InputLayer(
-            (None,self.document_length),
-            input_var=self.x_document_input
-        )
+        # self.document_l = lasagne.layers.InputLayer(
+        #     (None,self.document_length),
+        #     input_var=self.x_document_input
+        # )
 
-        self.document_embedding_l = EmbeddingLayer(
-            self.document_l,
-            W=self.embedding_W,
-            add_word_params=self.enable_train_wordvecs,
-        )
+        # self.document_embedding_l = EmbeddingLayer(
+        #     self.document_l,
+        #     W=self.embedding_W,
+        #     add_word_params=self.enable_train_wordvecs,
+        # )
 
-        self.document_simple_conv1_l = lasagne.layers.Conv2DLayer(
-            self.document_embedding_l,
-            num_filters=self.dim_compared_vec,
-            filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
-            name='document_simple_conv',
-            nonlinearity=simpleConvNonLin,
-        )
+        # self.document_simple_conv1_l = lasagne.layers.Conv2DLayer(
+        #     self.document_embedding_l,
+        #     num_filters=self.dim_compared_vec,
+        #     filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
+        #     name='document_simple_conv',
+        #     nonlinearity=simpleConvNonLin,
+        # )
 
-        self.all_conv_names.append('document_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.document_simple_conv1_l))
+        # self.all_conv_names.append('document_conv')
+        # self.all_conv_results.append(lasagne.layers.get_output(self.document_simple_conv1_l))
 
-        self.document_simple_sum_l = lasagne.layers.Pool2DLayer(
-            self.document_simple_conv1_l,
-            name='document_simple_pool',
-            pool_size=(self.document_length - self.num_words_to_use_conv, 1),
-            mode='sum',
-        )
+        # self.document_simple_sum_l = lasagne.layers.Pool2DLayer(
+        #     self.document_simple_conv1_l,
+        #     name='document_simple_pool',
+        #     pool_size=(self.document_length - self.num_words_to_use_conv, 1),
+        #     mode='sum',
+        # )
 
-        self.all_conv_pool_results.append(lasagne.layers.get_output(self.document_simple_sum_l))
+        # self.all_conv_pool_results.append(lasagne.layers.get_output(self.document_simple_sum_l))
 
-        self.document_output = lasagne.layers.get_output(
-            lasagne.layers.reshape(self.document_simple_sum_l, ([0],-1)))
+        # self.document_output = lasagne.layers.get_output(
+        #     lasagne.layers.reshape(self.document_simple_sum_l, ([0],-1)))
 
-        self.all_params += lasagne.layers.get_all_params(self.document_simple_sum_l)
+        # self.all_params += lasagne.layers.get_all_params(self.document_simple_sum_l)
 
 
-        ##########################################
-        ## surface text
+        # ##########################################
+        # ## surface text
 
-        self.surface_context_l = lasagne.layers.InputLayer(
-            (None, self.sentence_length),
-            input_var=self.x_surface_context_input,
-        )
+        # self.surface_context_l = lasagne.layers.InputLayer(
+        #     (None, self.sentence_length),
+        #     input_var=self.x_surface_context_input,
+        # )
 
-        self.surface_context_embedding_l = EmbeddingLayer(
-            self.surface_context_l,
-            W=self.embedding_W,
-            add_word_params=self.enable_train_wordvecs,
-        )
+        # self.surface_context_embedding_l = EmbeddingLayer(
+        #     self.surface_context_l,
+        #     W=self.embedding_W,
+        #     add_word_params=self.enable_train_wordvecs,
+        # )
 
-        self.surface_context_conv1_l = lasagne.layers.Conv2DLayer(
-            self.surface_context_embedding_l,
-            num_filters=self.dim_compared_vec,
-            filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
-            name='surface_cxt_conv1',
-            nonlinearity=simpleConvNonLin,
-        )
+        # self.surface_context_conv1_l = lasagne.layers.Conv2DLayer(
+        #     self.surface_context_embedding_l,
+        #     num_filters=self.dim_compared_vec,
+        #     filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
+        #     name='surface_cxt_conv1',
+        #     nonlinearity=simpleConvNonLin,
+        # )
 
-        self.all_conv_names.append('surface_context_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.surface_context_conv1_l))
+        # self.all_conv_names.append('surface_context_conv')
+        # self.all_conv_results.append(lasagne.layers.get_output(self.surface_context_conv1_l))
 
-        self.surface_context_pool1_l = lasagne.layers.Pool2DLayer(
-            self.surface_context_conv1_l,
-            name='surface_cxt_pool1',
-            pool_size=(self.sentence_length - self.num_words_to_use_conv, 1),
-            mode='sum',   # WAS 'MAX' FOR SOME REASON
-        )
+        # self.surface_context_pool1_l = lasagne.layers.Pool2DLayer(
+        #     self.surface_context_conv1_l,
+        #     name='surface_cxt_pool1',
+        #     pool_size=(self.sentence_length - self.num_words_to_use_conv, 1),
+        #     mode='sum',   # WAS 'MAX' FOR SOME REASON
+        # )
 
-        self.all_conv_pool_results.append(lasagne.layers.get_output(self.surface_context_pool1_l))
+        # self.all_conv_pool_results.append(lasagne.layers.get_output(self.surface_context_pool1_l))
 
-        self.surface_output = lasagne.layers.get_output(
-            lasagne.layers.reshape(self.surface_context_pool1_l, ([0], -1))
-        )
+        # self.surface_output = lasagne.layers.get_output(
+        #     lasagne.layers.reshape(self.surface_context_pool1_l, ([0], -1))
+        # )
 
-        self.all_params += lasagne.layers.get_all_params(self.surface_context_pool1_l)
+        # self.all_params += lasagne.layers.get_all_params(self.surface_context_pool1_l)
 
         self.surface_input_l = lasagne.layers.InputLayer(
             (None, self.sentence_length_short),
@@ -176,19 +176,20 @@ class EntityVectorLinkExp(baseModel):
             add_word_params=self.enable_train_wordvecs,
         )
 
-        self.surface_conv1_l = lasagne.layers.Conv2DLayer(
-            self.surface_embedding_l,
-            num_filters=self.dim_compared_vec,
-            filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
-            name='surface_conv1',
-            nonlinearity=simpleConvNonLin,
-        )
+        # self.surface_conv1_l = lasagne.layers.Conv2DLayer(
+        #     self.surface_embedding_l,
+        #     num_filters=self.dim_compared_vec,
+        #     filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
+        #     name='surface_conv1',
+        #     nonlinearity=simpleConvNonLin,
+        # )
 
-        self.all_conv_names.append('surface_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.surface_conv1_l))
+        # self.all_conv_names.append('surface_conv')
+        # self.all_conv_results.append(lasagne.layers.get_output(self.surface_conv1_l))
 
         self.surface_pool1_l = lasagne.layers.Pool2DLayer(
-            self.surface_conv1_l,
+            lasagne.lasagne.reshape(self.surface_embedding_l, ([0], self.embedding_W.get_value(borrow=True).shape[1], 1, self.sentence_length_short)),
+            #self.surface_conv1_l,
             name='surface_pool1',
             pool_size=(self.sentence_length_short - self.num_words_to_use_conv, 1),
             mode='sum',
@@ -214,57 +215,43 @@ class EntityVectorLinkExp(baseModel):
             input_var=self.x_target_input
         )
 
-        #################################
-        ## target indicators features
-
-        ## these have been replaced with the indicatores as provided by the scala system
-        # self.target_matched_surface_input_l = lasagne.layers.InputLayer(
-        #     (None,1,1,1),
-        #     input_var=matched_surface_reshaped,
-        # )
-
-        # self.target_matched_counts_input_l = lasagne.layers.InputLayer(
-        #     (None,5),
-        #     input_var=self.x_matches_counts.astype(theano.config.floatX),
-        # )
-
         # words from the title of the target
-        self.target_words_input_l = lasagne.layers.InputLayer(
-            (None,self.sentence_length_short),
-            input_var=self.x_target_words,
-        )
+        # self.target_words_input_l = lasagne.layers.InputLayer(
+        #     (None,self.sentence_length_short),
+        #     input_var=self.x_target_words,
+        # )
 
-        self.target_words_embedding_l = EmbeddingLayer(
-            self.target_words_input_l,
-            W=self.embedding_W,
-            add_word_params=self.enable_train_wordvecs,
-        )
+        # self.target_words_embedding_l = EmbeddingLayer(
+        #     self.target_words_input_l,
+        #     W=self.embedding_W,
+        #     add_word_params=self.enable_train_wordvecs,
+        # )
 
-        self.target_words_conv1_l = lasagne.layers.Conv2DLayer(
-            self.target_words_embedding_l,
-            name='target_wrds_conv1',
-            filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
-            num_filters=self.dim_compared_vec,
-            nonlinearity=simpleConvNonLin,
-        )
+        # self.target_words_conv1_l = lasagne.layers.Conv2DLayer(
+        #     self.target_words_embedding_l,
+        #     name='target_wrds_conv1',
+        #     filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
+        #     num_filters=self.dim_compared_vec,
+        #     nonlinearity=simpleConvNonLin,
+        # )
 
-        self.all_conv_names.append('target_title_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.target_words_conv1_l))
+        # self.all_conv_names.append('target_title_conv')
+        # self.all_conv_results.append(lasagne.layers.get_output(self.target_words_conv1_l))
 
-        self.target_words_pool1_l = lasagne.layers.Pool2DLayer(
-            self.target_words_conv1_l,
-            name='target_wrds_pool1',
-            pool_size=(self.sentence_length_short - self.num_words_to_use_conv, 1),
-            mode='sum',
-        )
+        # self.target_words_pool1_l = lasagne.layers.Pool2DLayer(
+        #     self.target_words_conv1_l,
+        #     name='target_wrds_pool1',
+        #     pool_size=(self.sentence_length_short - self.num_words_to_use_conv, 1),
+        #     mode='sum',
+        # )
 
-        self.all_conv_pool_results.append(lasagne.layers.get_output(self.target_words_pool1_l))
+        # self.all_conv_pool_results.append(lasagne.layers.get_output(self.target_words_pool1_l))
 
-        self.target_title_out = lasagne.layers.get_output(
-            lasagne.layers.reshape(self.target_words_pool1_l, ([0],-1))
-        )
+        # self.target_title_out = lasagne.layers.get_output(
+        #     lasagne.layers.reshape(self.target_words_pool1_l, ([0],-1))
+        # )
 
-        self.all_params += lasagne.layers.get_all_params(self.target_words_pool1_l)
+        # self.all_params += lasagne.layers.get_all_params(self.target_words_pool1_l)
 
 
         # words from the body of the target
@@ -279,19 +266,20 @@ class EntityVectorLinkExp(baseModel):
             add_word_params=self.enable_train_wordvecs,
         )
 
-        self.target_body_simple_conv1_l = lasagne.layers.Conv2DLayer(
-            self.target_body_words_embedding_l,
-            name='target_body_simple_conv',
-            filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
-            num_filters=self.dim_compared_vec,
-            nonlinearity=simpleConvNonLin,
-        )
+        # self.target_body_simple_conv1_l = lasagne.layers.Conv2DLayer(
+        #     self.target_body_words_embedding_l,
+        #     name='target_body_simple_conv',
+        #     filter_size=(self.num_words_to_use_conv, self.wordvecs.vector_size),
+        #     num_filters=self.dim_compared_vec,
+        #     nonlinearity=simpleConvNonLin,
+        # )
 
-        self.all_conv_names.append('target_body_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.target_body_simple_conv1_l))
+        # self.all_conv_names.append('target_body_conv')
+        # self.all_conv_results.append(lasagne.layers.get_output(self.target_body_simple_conv1_l))
 
         self.target_body_simple_sum_l = lasagne.layers.Pool2DLayer(
-            self.target_body_simple_conv1_l,
+            lasagne.layers.reshape(self.target_body_words_embedding_l, ([0], self.embedding_W.get_value(borrow=True).shape[1], 1, self.sentence_length)),
+            #self.target_body_simple_conv1_l,
             name='target_body_simple_sum',
             pool_size=(self.sentence_length - self.num_words_to_use_conv, 1),
             mode='sum',
@@ -311,9 +299,9 @@ class EntityVectorLinkExp(baseModel):
         # we need to reshuffle the inputs, this saves on computation
 
         # source body
-        self.source_aligned_l = self.document_output[self.x_document_id,:][self.x_link_id,:]
-        # source context
-        self.source_context_aligned_l = self.surface_output[self.x_link_id,:]
+        # self.source_aligned_l = self.document_output[self.x_document_id,:][self.x_link_id,:]
+        # # source context
+        # self.source_context_aligned_l = self.surface_output[self.x_link_id,:]
         # source surface words
         self.source_surface_words_aligned_l = self.surface_words_output[self.x_link_id,:]
 
@@ -335,13 +323,13 @@ class EntityVectorLinkExp(baseModel):
         self.cosine_conv_layers = []
 
         for i, l in enumerate([
-               comparedVLayers(self.target_out, self.source_aligned_l),
-               comparedVLayers(self.target_out, self.source_context_aligned_l),
+               #comparedVLayers(self.target_out, self.source_aligned_l),
+               #comparedVLayers(self.target_out, self.source_context_aligned_l),
                comparedVLayers(self.target_out, self.source_surface_words_aligned_l),
 
-               comparedVLayers(self.target_title_out, self.source_aligned_l),
-               comparedVLayers(self.target_title_out, self.source_context_aligned_l),
-               comparedVLayers(self.target_title_out, self.source_surface_words_aligned_l),
+               #comparedVLayers(self.target_title_out, self.source_aligned_l),
+               #comparedVLayers(self.target_title_out, self.source_context_aligned_l),
+               #comparedVLayers(self.target_title_out, self.source_surface_words_aligned_l),
             ]):
             if i not in disable_convs:
                 self.cosine_conv_layers.append(l)
@@ -359,67 +347,70 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=lasagne.nonlinearities.linear,
         )
 
+        self.cosine_weighted.W.get_value(borrow=True)[:] += 1
+
         self.cosine_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.cosine_weighted, (-1,)))
 
         self.all_params += lasagne.layers.get_all_params(self.cosine_weighted)
 
 
-        ######################################################
-        ## indicator feature input
+        # ######################################################
+        # ## indicator feature input
 
 
-        self.query_feat_l = lasagne.layers.InputLayer(
-            (None,self.num_indicator_features),
-            input_var=self.x_query_featurs,
-        )
+        # self.query_feat_l = lasagne.layers.InputLayer(
+        #     (None,self.num_indicator_features),
+        #     input_var=self.x_query_featurs,
+        # )
 
-        #rank_feats = [f[0] for f in enumerate(featuresNames) if f[1].startswith('Rank=')]
+        # #rank_feats = [f[0] for f in enumerate(featuresNames) if f[1].startswith('Rank=')]
 
-        self.denotation_join_feat_l = lasagne.layers.InputLayer(
-            (None,self.num_indicator_features),
-            input_var=self.x_denotaiton_features,#[:, rank_feats],
-        )
+        # self.denotation_join_feat_l = lasagne.layers.InputLayer(
+        #     (None,self.num_indicator_features),
+        #     input_var=self.x_denotaiton_features,#[:, rank_feats],
+        # )
 
-        ## the query and denotation features are now combined when inputed into the same denotation vector
+        # ## the query and denotation features are now combined when inputed into the same denotation vector
 
-        # self.query_layer_l = lasagne.layers.DenseLayer(
-        #     self.query_feat_l,
-        #     name='query_lin',
+        # # self.query_layer_l = lasagne.layers.DenseLayer(
+        # #     self.query_feat_l,
+        # #     name='query_lin',
+        # #     num_units=1,
+        # #     nonlinearity=lasagne.nonlinearities.linear,
+        # # )
+
+        # # self.query_output = lasagne.layers.get_output(
+        # #     lasagne.layers.reshape(self.query_layer_l, (-1,))
+        # # )
+
+        # # self.all_params += lasagne.layers.get_all_params(self.query_layer_l)
+
+        # # self.aligned_queries = self.query_output[self.x_query_link_id]
+
+        # self.aligned_cosine = self.cosine_output[self.x_target_link_id]
+
+        # self.denotation_layer_l = lasagne.layers.DenseLayer(
+        #     self.denotation_join_feat_l,
+        #     name='denotation_lin',
         #     num_units=1,
         #     nonlinearity=lasagne.nonlinearities.linear,
+        #     #W=self.query_layer_l.W,
         # )
 
-        # self.query_output = lasagne.layers.get_output(
-        #     lasagne.layers.reshape(self.query_layer_l, (-1,))
-        # )
+        # self.denotation_output = lasagne.layers.get_output(
+        #     lasagne.layers.reshape(self.denotation_layer_l, (-1,)))
 
-        # self.all_params += lasagne.layers.get_all_params(self.query_layer_l)
-
-        # self.aligned_queries = self.query_output[self.x_query_link_id]
-
-        self.aligned_cosine = self.cosine_output[self.x_target_link_id]
-
-        self.denotation_layer_l = lasagne.layers.DenseLayer(
-            self.denotation_join_feat_l,
-            name='denotation_lin',
-            num_units=1,
-            nonlinearity=lasagne.nonlinearities.linear,
-            #W=self.query_layer_l.W,
-        )
-
-        self.denotation_output = lasagne.layers.get_output(
-            lasagne.layers.reshape(self.denotation_layer_l, (-1,)))
-
-        self.all_params += lasagne.layers.get_all_params(self.denotation_layer_l)
+        # self.all_params += lasagne.layers.get_all_params(self.denotation_layer_l)
 
         ###########################
         ## multiply the two parts of the join scores
 
         self.unmerged_scores =  (
-            ( #(self.aligned_queries) +
-            (self.denotation_output))
-            + self.aligned_cosine
+            # ( #(self.aligned_queries) +
+            # (self.denotation_output))
+            # +
+            self.aligned_cosine
         )
 
         #############################################
@@ -828,6 +819,10 @@ class EntityVectorLinkExp(baseModel):
 
 
     def find_max_convs(self, num_per_activation=10):
+        # disable
+        return
+
+
         assert len(self.all_conv_names) == 5
         assert len(self.all_conv_results) == 5
 

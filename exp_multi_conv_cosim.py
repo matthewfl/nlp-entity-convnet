@@ -13,6 +13,8 @@ import re
 import random
 import sys
 
+from tqdm import tqdm
+
 theano.config.floatX = 'float32'
 #theano.config.linker = 'cvm_nogc'
 theano.config.openmp = True
@@ -359,6 +361,9 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=lasagne.nonlinearities.linear,
         )
 
+        # encourage these weights to be positive
+        self.cosine_weighted.W.get_value(borrow=True)[:] += 1
+
         self.cosine_output = lasagne.layers.get_output(
             lasagne.layers.reshape(self.cosine_weighted, (-1,)))
 
@@ -578,7 +583,7 @@ class EntityVectorLinkExp(baseModel):
 
         empty_sentence = np.zeros(self.sentence_length, dtype='int32')
 
-        for doc, queries in self.queries.iteritems():
+        for doc, queries in tqdm(self.queries.iteritems()):
             # skip the testing documents while training and vice versa
             if queries.values()[0]['training'] != isTraining:
                 continue
@@ -734,7 +739,7 @@ class EntityVectorLinkExp(baseModel):
             if len(self.current_target_id) > self.batch_size:
 #                 return
                 batch_run_func(func)
-                sys.stderr.write('%i\r'%self.total_links)
+#                sys.stderr.write('%i\r'%self.total_links)
                 if self.total_links > self.num_training_items:
                     return self.total_loss / self.total_links, #self.total_boosted_loss / self.total_links
 

@@ -500,7 +500,7 @@ class EntityVectorLinkExp(baseModel):
         self.loss_scalar = self.loss_vec.sum()
 
         self.updates = lasagne.updates.adadelta(
-            self.loss_scalar / self.loss_vec.shape[0] ,
+            theano.grad(self.loss_scalar / self.loss_vec.shape[0], self.all_params, disconnected_inputs='warn'),
             self.all_params)
 
         self.func_inputs = [

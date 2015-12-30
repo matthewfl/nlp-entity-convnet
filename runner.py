@@ -236,7 +236,7 @@ def main():
 
     print 'Loading model'
     global queries_exp, disable_convs
-    disable_convs = args.disable_conv
+    disable_convs = args.disable_conv or []
     queries_exp = __import__(args.exp_model).queries_exp
 
     if h5_prev_f:

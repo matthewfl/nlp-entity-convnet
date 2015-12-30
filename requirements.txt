@@ -19,3 +19,4 @@ numpy==1.9.2
 ipython[notebook]
 
 h5py
+tqdm

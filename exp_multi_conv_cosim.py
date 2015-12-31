@@ -423,7 +423,7 @@ class EntityVectorLinkExp(baseModel):
 
         self.unmerged_scores =  (
             ( #(self.aligned_queries) +
-            (self.denotation_output))
+            (self.denotation_output if 1000 not in disable_convs else 0))
             + self.aligned_cosine
         )
 

@@ -192,7 +192,7 @@ class EntityVectorLinkExp(baseModel):
             #self.surface_conv1_l,
             name='surface_pool1',
             pool_size=(self.sentence_length_short, 1),
-            mode='sum',
+            mode='average_exc_pad', #sum',
         )
 
         self.all_conv_pool_results.append(lasagne.layers.get_output(self.surface_pool1_l))
@@ -282,7 +282,7 @@ class EntityVectorLinkExp(baseModel):
             #self.target_body_simple_conv1_l,
             name='target_body_simple_sum',
             pool_size=(self.sentence_length, 1),
-            mode='sum',
+            mode='average_exc_pad', #sum',
         )
 
         self.all_conv_pool_results.append(lasagne.layers.get_output(self.target_body_simple_sum_l))

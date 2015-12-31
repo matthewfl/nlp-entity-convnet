@@ -188,10 +188,10 @@ class EntityVectorLinkExp(baseModel):
         # self.all_conv_results.append(lasagne.layers.get_output(self.surface_conv1_l))
 
         self.surface_pool1_l = lasagne.layers.Pool2DLayer(
-            lasagne.lasagne.reshape(self.surface_embedding_l, ([0], self.embedding_W.get_value(borrow=True).shape[1], 1, self.sentence_length_short)),
+            lasagne.layers.reshape(self.surface_embedding_l, ([0], [3], [2], [1])),
             #self.surface_conv1_l,
             name='surface_pool1',
-            pool_size=(self.sentence_length_short - self.num_words_to_use_conv, 1),
+            pool_size=(self.sentence_length_short, 1),
             mode='sum',
         )
 
@@ -278,10 +278,10 @@ class EntityVectorLinkExp(baseModel):
         # self.all_conv_results.append(lasagne.layers.get_output(self.target_body_simple_conv1_l))
 
         self.target_body_simple_sum_l = lasagne.layers.Pool2DLayer(
-            lasagne.layers.reshape(self.target_body_words_embedding_l, ([0], self.embedding_W.get_value(borrow=True).shape[1], 1, self.sentence_length)),
+            lasagne.layers.reshape(self.target_body_words_embedding_l, ([0], [3], [2], [1])),
             #self.target_body_simple_conv1_l,
             name='target_body_simple_sum',
-            pool_size=(self.sentence_length - self.num_words_to_use_conv, 1),
+            pool_size=(self.sentence_length, 1),
             mode='sum',
         )
 
@@ -388,7 +388,7 @@ class EntityVectorLinkExp(baseModel):
 
         # # self.aligned_queries = self.query_output[self.x_query_link_id]
 
-        # self.aligned_cosine = self.cosine_output[self.x_target_link_id]
+        self.aligned_cosine = self.cosine_output[self.x_target_link_id]
 
         # self.denotation_layer_l = lasagne.layers.DenseLayer(
         #     self.denotation_join_feat_l,

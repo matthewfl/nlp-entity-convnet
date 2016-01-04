@@ -138,6 +138,7 @@ def argsp():
     aparser.add_argument('--exp_model', help='the file to load for the experiment', default='exp_multi_conv_cosim')
     aparser.add_argument('--load_model_weights', help='the h5py file from a previous run, will start from these learned weights')
     aparser.add_argument('--disable_conv', type=int, nargs='+', help='list of convs to disable')
+    aparser.add_argument('--save_queries', help='json file to save the query results')
 
     return aparser
 
@@ -287,6 +288,13 @@ def main():
         do_eval(-1)
 
     queries_exp.find_max_convs()
+
+    if args.save_queries:
+        with open(potentially_rename_file(args.save_queries), 'w+') as f:
+            json.dump({
+                'queries': queries,
+                'featIndex': featureNames,
+            }, f)
 
 
 

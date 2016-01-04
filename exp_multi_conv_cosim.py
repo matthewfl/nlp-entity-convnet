@@ -348,26 +348,29 @@ class EntityVectorLinkExp(baseModel):
             if i not in disable_convs:
                 self.cosine_conv_layers.append(l)
 
-        self.cosine_combined = lasagne.layers.concat(
-            self.cosine_conv_layers,
-            axis=1
-        )
+        if len(self.cosine_conv_layers) != 0:
+            self.cosine_combined = lasagne.layers.concat(
+                self.cosine_conv_layers,
+                axis=1
+            )
 
-        self.cosine_weighted = lasagne.layers.DenseLayer(
-            self.cosine_combined,
-            name='cosine_dens1',
-            num_units=1,
-            b=None,
-            nonlinearity=lasagne.nonlinearities.linear,
-        )
+            self.cosine_weighted = lasagne.layers.DenseLayer(
+                self.cosine_combined,
+                name='cosine_dens1',
+                num_units=1,
+                b=None,
+                nonlinearity=lasagne.nonlinearities.linear,
+            )
 
-        # encourage these weights to be positive
-        self.cosine_weighted.W.get_value(borrow=True)[:] += 1
+            # encourage these weights to be positive
+            self.cosine_weighted.W.get_value(borrow=True)[:] += 1
 
-        self.cosine_output = lasagne.layers.get_output(
-            lasagne.layers.reshape(self.cosine_weighted, (-1,)))
+            self.cosine_output = lasagne.layers.get_output(
+                lasagne.layers.reshape(self.cosine_weighted, (-1,)))
 
-        self.all_params += lasagne.layers.get_all_params(self.cosine_weighted)
+            self.all_params += lasagne.layers.get_all_params(self.cosine_weighted)
+
+            self.aligned_cosine = self.cosine_output[self.x_target_link_id]
 
 
         ######################################################
@@ -403,8 +406,6 @@ class EntityVectorLinkExp(baseModel):
 
         # self.aligned_queries = self.query_output[self.x_query_link_id]
 
-        self.aligned_cosine = self.cosine_output[self.x_target_link_id]
-
         self.denotation_layer_l = lasagne.layers.DenseLayer(
             self.denotation_join_feat_l,
             name='denotation_lin',
@@ -424,7 +425,7 @@ class EntityVectorLinkExp(baseModel):
         self.unmerged_scores =  (
             ( #(self.aligned_queries) +
             (self.denotation_output if 1000 not in disable_convs else 0))
-            + self.aligned_cosine
+            + (self.aligned_cosine if len(self.cosine_conv_layers) != 0 else 0)
         )
 
         #############################################

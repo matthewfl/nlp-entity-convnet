@@ -1,7 +1,7 @@
 FROM centos:7
 MAINTAINER Matthew Francis-Landau <matthew@matthewfl.com>
 RUN yum install -y epel-release && \
-	yum install -y git python-pip libpng libpng-devel freetype freetype-devel python-devel gcc-c++ libjpeg libjpeg-devel hdf5 hdf5-devel java-1.8.0-openjdk java-1.8.0-openjdk-devel which make gcc-gfortran \
+	yum install -y git python-pip libpng libpng-devel freetype freetype-devel python-devel gcc-c++ libjpeg libjpeg-devel hdf5 hdf5-devel java-1.8.0-openjdk java-1.8.0-openjdk-devel which make gcc-gfortran bzip2 \
 	&& mkdir /project
 RUN mkdir /tmp/openblas \
  	&& cd /tmp/openblas \

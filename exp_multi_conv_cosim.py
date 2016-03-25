@@ -803,14 +803,31 @@ class EntityVectorLinkExp(baseModel):
 
         # res shape: (document index, num filters, output rows, output columns [word vectors, should be 1])
 
+        conv_out_map = dict(
+            (self.all_conv_names[i], res[i]) for i in xrange(len(res))
+        )
+        # document_conv, surface_context_conv, surface_conv, target_title_conv, target_body_conv
+
+        # approximate comparision matrices that are getting compared against
+        # the idea being that something that is maximal on one side might not compare with something else on the other
+        conv_sum_docs = reduce(lambda c,d: c + d, [conv_out_map[a] for a in conv_out_map if a.startswith('target_')]).max(axis=2)[:,:,0]
+        conv_sum_target = reduce(lambda c,d: c + d, [conv_out_map[a] for a in conv_out_map if not a.startswith('target_')]).max(axis=2)[:,:,0]
+
         for i in xrange(len(res)):
             conv_len = conv_inputs[i].shape[1] - res[i].shape[2] + 1
+            if self.all_conv_names[i].startswith('target_'):
+                alt_matrix = conv_sum_docs
+            else:
+                alt_matrix = conv_sum_target
+            #cmp_matrix = res[i][:,:,:,0] * alt_matrix
+            cmp_matrix = np.einsum('ijk,ij->ijk', res[i][:,:,:,0], alt_matrix)
             for dim in xrange(self.dim_compared_vec):
                 current_min = self.conv_max[i][dim][0][0]
-                higher_p = res[i][:, dim, :, 0] > current_min
+                #higher_p = res[i][:, dim, :, 0] > current_min
+                higher_p = cmp_matrix[:, dim, :] > current_min
                 if higher_p.any():
                     higher_where = np.where(higher_p)
-                    higher_vals = res[i][higher_where[0], dim, higher_where[1], 0]
+                    higher_vals = cmp_matrix[higher_where[0], dim, higher_where[1]]
                     current_words = set(w[1] for w in self.conv_max[i][dim])
                     higher_words = [
                         # np won't do this selecting in one shot

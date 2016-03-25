@@ -67,7 +67,8 @@ class WikipediaReader(object):
             import subprocess
             proc = subprocess.Popen('cat {} | bzip2 -d'.format(self.wikidump_fname),
                                     shell=True,
-                                    stdout=subprocess.PIPE
+                                    stdout=subprocess.PIPE,
+				    bufsize=1024*1024,
                                     )
             return proc.stdout
             #return bz2.BZ2File(self.wikidump_fname, 'r', 10 * 1024 * 1024)

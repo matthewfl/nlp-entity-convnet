@@ -109,9 +109,6 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=simpleConvNonLin,
         )
 
-        self.all_conv_names.append('document_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.document_simple_conv1_l))
-
         self.document_simple_sum_l = lasagne.layers.Pool2DLayer(
             self.document_simple_conv1_l,
             name='document_simple_pool',
@@ -149,9 +146,6 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=simpleConvNonLin,
         )
 
-        self.all_conv_names.append('surface_context_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.surface_context_conv1_l))
-
         self.surface_context_pool1_l = lasagne.layers.Pool2DLayer(
             self.surface_context_conv1_l,
             name='surface_cxt_pool1',
@@ -185,9 +179,6 @@ class EntityVectorLinkExp(baseModel):
             name='surface_conv1',
             nonlinearity=simpleConvNonLin,
         )
-
-        self.all_conv_names.append('surface_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.surface_conv1_l))
 
         self.surface_pool1_l = lasagne.layers.Pool2DLayer(
             self.surface_conv1_l,
@@ -250,9 +241,6 @@ class EntityVectorLinkExp(baseModel):
             nonlinearity=simpleConvNonLin,
         )
 
-        self.all_conv_names.append('target_title_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.target_words_conv1_l))
-
         self.target_words_pool1_l = lasagne.layers.Pool2DLayer(
             self.target_words_conv1_l,
             name='target_wrds_pool1',
@@ -288,9 +276,6 @@ class EntityVectorLinkExp(baseModel):
             num_filters=self.dim_compared_vec,
             nonlinearity=simpleConvNonLin,
         )
-
-        self.all_conv_names.append('target_body_conv')
-        self.all_conv_results.append(lasagne.layers.get_output(self.target_body_simple_conv1_l))
 
         self.target_body_simple_sum_l = lasagne.layers.Pool2DLayer(
             self.target_body_simple_conv1_l,
@@ -523,6 +508,34 @@ class EntityVectorLinkExp(baseModel):
             #self.res_l,
         ]
 
+        dsc_out = lasagne.layers.get_output(self.document_simple_conv1_l)
+        scc_out = lasagne.layers.get_output(self.surface_context_conv1_l)
+        sc_out = lasagne.layers.get_output(self.surface_conv1_l)
+
+        ttc_out = lasagne.layers.get_output(self.target_words_conv1_l)
+        tbc_out = lasagne.layers.get_output(self.target_body_simple_conv1_l)
+
+        # def cmp_convs(input, against):
+        #     #T.dot(
+
+
+        self.all_conv_names.append('document_conv')
+        self.all_conv_results.append(dsc_out)#cmp_convs(dsc_out[self.x_document_id][self.x_link_id], [ttc_out, tbc_out]))
+
+        self.all_conv_names.append('surface_context_conv')
+        self.all_conv_results.append(scc_out)#cmp_convs(scc_out[self.x_link_id], [ttc_outp, tbc_out]))
+
+        self.all_conv_names.append('surface_conv')
+        self.all_conv_results.append(sc_out)
+
+        self.all_conv_names.append('target_title_conv')
+        self.all_conv_results.append(ttc_out)
+
+        self.all_conv_names.append('target_body_conv')
+        self.all_conv_results.append(tbc_out)
+
+
+
         self.train_func = theano.function(
             self.func_inputs,
             self.func_outputs,
@@ -723,7 +736,7 @@ class EntityVectorLinkExp(baseModel):
                     target_group_end = len(self.current_target_input)
                     self.current_learning_groups.append(
                         [target_group_start, target_group_end,
-                        -1 # gold_loc
+                        target_gold_loc + target_group_start, # gold_loc
                         ])
                     #self.current_boosted_groups.append(targets['boosted'])
 
@@ -803,24 +816,42 @@ class EntityVectorLinkExp(baseModel):
 
         # res shape: (document index, num filters, output rows, output columns [word vectors, should be 1])
 
+
+        # the issue with this is that the batches aren't alined, since multiple documents can be processed at the same time
         conv_out_map = dict(
-            (self.all_conv_names[i], res[i]) for i in xrange(len(res))
+            (self.all_conv_names[i], res[i].max(axis=2)[:,:,0]) for i in xrange(len(res))
         )
         # document_conv, surface_context_conv, surface_conv, target_title_conv, target_body_conv
 
+        from __builtin__ import reduce
+
         # approximate comparision matrices that are getting compared against
         # the idea being that something that is maximal on one side might not compare with something else on the other
-        conv_sum_docs = reduce(lambda c,d: c + d, [conv_out_map[a] for a in conv_out_map if a.startswith('target_')]).max(axis=2)[:,:,0]
-        conv_sum_target = reduce(lambda c,d: c + d, [conv_out_map[a] for a in conv_out_map if not a.startswith('target_')]).max(axis=2)[:,:,0]
+        #conv_sum_docs = reduce(lambda c,d: c + d, [conv_out_map[a] for a in conv_out_map if a.startswith('target_')])
+        #conv_sum_target = reduce(lambda c,d: c + d, [conv_out_map[a] for a in conv_out_map if not a.startswith('target_')])
+        golds_places = np.array(self.current_learning_groups)[:,2]
+        conv_sum_docs = (conv_out_map['document_conv'][self.current_link_id][self.current_target_id] + conv_out_map['surface_context_conv'][self.current_target_id] + conv_out_map['surface_conv'][self.current_target_id])
+        conv_sum_target_raw = conv_out_map['target_title_conv'] + conv_out_map['target_body_conv']
+        conv_sum_target = (conv_sum_target_raw)[golds_places]
 
         for i in xrange(len(res)):
             conv_len = conv_inputs[i].shape[1] - res[i].shape[2] + 1
+            res_mat = res[i][:,:,:,0]
             if self.all_conv_names[i].startswith('target_'):
-                alt_matrix = conv_sum_docs
+                alt_matrix = conv_sum_docs[golds_places]
+                res_mat = res_mat[golds_places]
             else:
                 alt_matrix = conv_sum_target
+                if self.all_conv_names[i] == 'document_conv':
+                    num_docs = conv_inputs[i].shape[0]
+                    alt_matrix = np.zeros((num_docs, conv_sum_target_raw.shape[1]))
+                    # just choose one gold entry for this document to compare against
+                    for x in xrange(num_docs):
+                        dge = np.intersect1d(golds_places, np.where(np.array(self.current_link_id)[self.current_target_id] == x))
+                        alt_matrix[x,:] = conv_sum_target_raw[dge[0]]
             #cmp_matrix = res[i][:,:,:,0] * alt_matrix
-            cmp_matrix = np.einsum('ijk,ij->ijk', res[i][:,:,:,0], alt_matrix)
+            cmp_matrix = np.einsum('ijk,ij->ijk', res_mat, alt_matrix)
+            #cmp_matrix = res[i][:,:,:,0]
             for dim in xrange(self.dim_compared_vec):
                 current_min = self.conv_max[i][dim][0][0]
                 #higher_p = res[i][:, dim, :, 0] > current_min

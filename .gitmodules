@@ -1,9 +1,9 @@
 [submodule "prevwork/CNN_sentence"]
 	path = prevwork/CNN_sentence
-	url = git@github.com:yoonkim/CNN_sentence.git
+	url = https://github.com/yoonkim/CNN_sentence.git
 [submodule "prevwork/Lasagne"]
 	path = prevwork/Lasagne
-	url = git@github.com:Lasagne/Lasagne.git
+	url = https://github.com/Lasagne/Lasagne.git
 [submodule "prevwork/theano"]
 	path = prevwork/theano
-	url = git@github.com:Theano/Theano.git
+	url = https://github.com/Theano/Theano.git

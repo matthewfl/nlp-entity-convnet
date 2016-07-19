@@ -3,11 +3,17 @@ to get working:
     pip install -r requirements.txt
     ./demo.sh
 
+
 main parts of the program:
 
-  exp_multi_conv_cosim.py
-	runner.py
-	evaluation.py
-	helpers.py
-	wikireader.py
-	wordvecs.py
+    exp_multi_conv_cosim.py
+    runner.py
+    evaluation.py
+    helpers.py
+    wikireader.py
+    wordvecs.py
+
+
+License:
+
+    This code is licensed under LGPL v3 https://www.gnu.org/licenses/lgpl-3.0.html
